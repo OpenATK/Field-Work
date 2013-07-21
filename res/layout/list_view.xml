@@ -1,0 +1,46 @@
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#FFF"
+    android:clickable="true"
+    android:focusable="true"
+    android:focusableInTouchMode="true">
+
+	<TextView 
+	    android:id="@+id/list_view_tvTitle1"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textSize="24sp"
+        android:text="247 of 678 ac Remaining"
+        android:layout_marginLeft="7dp"
+        android:layout_marginRight="7dp"
+        android:layout_marginTop="7dp"
+        android:layout_centerHorizontal="true"
+	    />
+	<TextView 
+	    android:id="@+id/list_view_tvTitle2"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textSize="20sp"
+        android:text="12 of 15 Fields Done"
+        android:layout_marginLeft="7dp"
+        android:layout_marginRight="7dp"
+        android:layout_marginTop="7dp"
+        android:layout_marginBottom="7dp"
+        android:layout_centerHorizontal="true"
+        android:layout_below="@+id/list_view_tvTitle1"
+	    />
+	<ScrollView
+            android:layout_width="match_parent"
+		    android:layout_height="wrap_content"
+		    android:layout_below="@+id/list_view_tvTitle2"
+		    android:layout_alignParentBottom="true">
+		<LinearLayout
+		    android:id="@+id/list_view_categories"
+		    android:layout_width="match_parent"
+		    android:layout_height="wrap_content"
+		    android:layout_alignParentTop="true"
+		    android:layout_alignParentBottom="true"
+		    android:orientation="vertical"/>   
+	</ScrollView>
+</RelativeLayout>

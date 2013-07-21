@@ -1,0 +1,42 @@
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="#EEE">
+    
+	<TextView 
+	    android:id="@+id/new_operation_dialog_title"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textSize="22sp"
+        android:text="New Operation"
+	    />
+	<RelativeLayout
+    	android:layout_width="match_parent"
+    	android:layout_height="wrap_content"
+    	android:layout_below="@+id/new_operation_dialog_title"
+    	android:layout_alignParentLeft="true"
+    	>
+		<TextView 
+		    android:id="@+id/new_operation_dialog_label"
+	        android:layout_width="wrap_content"
+	        android:layout_height="wrap_content"
+	        android:textSize="18sp"
+	        android:text="Name:"
+	        android:layout_alignParentLeft="true"
+	        android:layout_marginLeft="8dp"
+	        android:layout_centerVertical="true"
+		    />
+	    <EditText 
+	        android:id="@+id/new_operation_dialog_name"
+	        android:layout_width="match_parent"
+	        android:layout_height="wrap_content"
+	        android:textSize="15sp"
+	        android:hint="eg. (Tillage 2013)"
+	        android:layout_alignParentRight="true"
+	        android:layout_toRightOf="@+id/new_operation_dialog_label"
+	        android:layout_marginLeft="8dp"
+	        android:layout_centerVertical="true"
+	        ><requestFocus /></EditText>
+    </RelativeLayout>
+ 
+</RelativeLayout>

@@ -1,0 +1,19 @@
+<menu xmlns:android="http://schemas.android.com/apk/res/android" >
+    <item
+        android:id="@+id/main_menu_current_location"
+        android:orderInCategory="100"
+        android:showAsAction="always"
+        android:icon="@drawable/locate"
+        android:title="Current Location"/>
+    <item
+        android:id="@+id/main_menu_list_view"
+        android:orderInCategory="100"
+        android:showAsAction="always"
+        android:icon="@drawable/map_view"
+        android:title="Map View"/>
+    <item
+        android:id="@+id/main_menu_help"
+        android:orderInCategory="100"
+        android:showAsAction="never"
+        android:title="Help"/>
+</menu>

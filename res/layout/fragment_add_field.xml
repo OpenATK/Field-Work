@@ -1,0 +1,92 @@
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:clickable="true"
+    android:background="#EEE">
+    
+     <LinearLayout
+        android:id="@+id/add_field_lay_row1"
+	    android:layout_width="match_parent" 
+	    android:layout_height="wrap_content"
+	    android:layout_alignParentLeft="true"
+	    android:layout_alignParentTop="true"
+	    android:weightSum="100">
+        <Space 
+            android:layout_width="0dp" 
+            android:layout_height="wrap_content" 
+            android:layout_weight="20" /> 
+		<EditText 
+		        android:id="@+id/add_field_name"
+		        android:layout_width="0dp"
+		        android:layout_height="48dp"
+		        android:hint="Field Name"
+		        android:layout_weight="60"
+		        />
+		<Space 
+            android:layout_width="0dp" 
+            android:layout_height="wrap_content" 
+            android:layout_weight="20" /> 
+    </LinearLayout>
+    
+    
+    <ImageButton 
+        android:id="@+id/add_field_done"
+        android:layout_marginTop="16dp"
+        android:layout_width="32dp"
+        android:layout_height="32dp"
+        android:contentDescription=""
+        android:layout_alignParentLeft="true"
+        android:layout_below="@+id/add_field_lay_row1"
+        android:background="@drawable/check_ok"
+        />
+    <ImageButton 
+        android:id="@+id/add_field_delete"
+        android:layout_marginTop="16dp"
+        android:layout_width="32dp"
+        android:layout_height="32dp"
+        android:contentDescription=""
+        android:layout_alignParentRight="true"
+        android:layout_below="@+id/add_field_lay_row1"
+        android:background="@drawable/trash"
+        />
+    <ImageButton 
+        android:id="@+id/add_field_undo"
+        android:layout_marginTop="16dp"
+        android:layout_width="32dp"
+        android:layout_height="32dp"
+        android:contentDescription=""
+        android:layout_marginRight="7dp"
+        android:layout_toLeftOf="@+id/add_field_delete"
+        android:layout_below="@+id/add_field_lay_row1"
+        android:background="@drawable/delete_vertex"
+        />
+
+     <LinearLayout
+        android:id="@+id/add_field_lay_row2"
+	    android:layout_width="wrap_content" 
+	    android:layout_height="wrap_content"
+	    android:layout_toRightOf="@+id/add_field_done"
+	    android:layout_toLeftOf="@+id/add_field_undo"
+	    android:layout_below="@+id/add_field_lay_row1"
+	    android:gravity="center">
+		
+        <CheckBox 
+	        android:id="@+id/add_field_chkAutoAcres"
+	        android:layout_width="wrap_content"
+	        android:layout_height="48dp"
+	        android:checked="true"
+        />
+		<EditText 
+	        android:id="@+id/add_field_etAcres"
+	        android:layout_width="wrap_content"
+	        android:layout_height="48dp"
+	        android:hint="Acres"
+	        android:text="59 ac"
+	        android:inputType="numberDecimal"
+	        android:digits="0123456789"
+	        android:enabled="false"
+        />
+
+    </LinearLayout>
+    
+</RelativeLayout>
