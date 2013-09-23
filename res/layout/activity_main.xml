@@ -13,7 +13,7 @@
 	
 	<fragment
 	    android:id="@+id/list_view"
-	    android:name="edu.purdue.autogenics.tillage.FragmentListView"
+	    android:name="com.openatk.tillage.FragmentListView"
 	    android:layout_width="match_parent"
 	    android:layout_height="match_parent" />
 	

@@ -14,10 +14,10 @@
     <item
         android:id="@+id/main_menu_layers"
         android:orderInCategory="100"
-        android:showAsAction="ifRoom"
+        android:showAsAction="never"
         android:icon="@drawable/layers"
-        android:title="Layers"
-        android:visible="false"/>
+        android:title="Show Hazards"
+        android:visible="true"/>
     <item
         android:id="@+id/main_menu_list_view"
         android:orderInCategory="100"

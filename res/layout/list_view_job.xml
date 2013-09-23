@@ -2,7 +2,9 @@
     android:id="@+id/list_view_job_full"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:clickable="true">
+    android:clickable="true"
+    android:paddingBottom="10dp"
+    >
 	<RelativeLayout
 	    android:id="@+id/list_view_job_topbar"
     	android:layout_width="match_parent"
@@ -13,6 +15,19 @@
     	android:layout_marginLeft="10dp"
     	android:layout_marginRight="10dp"
     	>
+    	<TextView 
+		    android:id="@+id/list_view_job_tvTitleLabel"
+	        android:layout_width="wrap_content"
+	        android:layout_height="wrap_content"
+	        android:textSize="14sp"
+	        android:text="Field Name:"
+	        android:textColor="#000"
+	        android:layout_centerVertical="true"
+	        android:layout_alignParentLeft="true"
+	        android:layout_marginLeft="7dp"
+	        android:layout_marginTop="7dp"
+	        android:layout_marginBottom="7dp"
+		    />
 		<TextView 
 		    android:id="@+id/list_view_job_tvTitle"
 	        android:layout_width="wrap_content"
@@ -21,7 +36,8 @@
 	        android:text="Field 5 - 78 acres"
 	        android:textColor="#000"
 	        android:layout_centerVertical="true"
-	        android:layout_centerHorizontal="true"
+	        android:layout_toRightOf="@+id/list_view_job_tvTitleLabel"
+	        android:layout_marginLeft="7dp"
 	        android:layout_marginTop="7dp"
 	        android:layout_marginBottom="7dp"
 		    />

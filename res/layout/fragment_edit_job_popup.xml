@@ -71,6 +71,7 @@
 		    	android:layout_height="wrap_content"
 		    	android:layout_alignParentTop="true"
 		    	android:layout_centerInParent="true"
+		    	android:button="@drawable/checkbox_planned"
 		        />
 		    <TextView
 		        android:id="@+id/edit_field_label_chkPlanned"
@@ -95,6 +96,7 @@
 		    	android:layout_height="wrap_content"
 		    	android:layout_alignParentTop="true"
 		    	android:layout_centerInParent="true"
+		    	android:button="@drawable/checkbox_started"
 		        />
 		    <TextView
 		        android:id="@+id/edit_field_label_chkStarted"
@@ -119,6 +121,7 @@
 		    	android:layout_height="wrap_content"
 		    	android:layout_alignParentTop="true"
 		    	android:layout_centerInParent="true"
+		    	android:button="@drawable/checkbox_done"
 		        />
 		    <TextView
 		        android:id="@+id/edit_field_label_chkDone"
