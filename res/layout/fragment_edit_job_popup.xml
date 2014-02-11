@@ -1,4 +1,5 @@
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/edit_field_layout"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:layout_alignParentBottom="true"
@@ -63,7 +64,6 @@
 	        android:id="@+id/edit_field_layStatusPlanned"
 		    android:layout_width="wrap_content"
 		    android:layout_height="wrap_content"
-		    android:layout_below="@+id/edit_field_layTitle"
 		    android:layout_marginRight="10dp">
 		    <CheckBox 
 		    	android:id="@+id/edit_field_chkPlanned"
@@ -88,7 +88,6 @@
 		    android:layout_width="wrap_content"
 		    android:layout_height="wrap_content"
 		    android:layout_toRightOf="@+id/edit_field_layStatusPlanned"
-		    android:layout_below="@+id/edit_field_layTitle"
 		    android:layout_marginRight="10dp">
 		    <CheckBox 
 		    	android:id="@+id/edit_field_chkStarted"
@@ -113,7 +112,6 @@
 		    android:layout_width="wrap_content"
 		    android:layout_height="wrap_content"
 		    android:layout_toRightOf="@+id/edit_field_layStatusStarted"
-		    android:layout_below="@+id/edit_field_layTitle"
 		    android:layout_marginRight="10dp">
 		    <CheckBox 
 		    	android:id="@+id/edit_field_chkDone"
@@ -133,7 +131,6 @@
 		        android:text="Done" 
 		        />
 	    </RelativeLayout>
-
 	</RelativeLayout>
 	
     <RelativeLayout
