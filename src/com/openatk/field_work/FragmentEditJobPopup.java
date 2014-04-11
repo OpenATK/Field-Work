@@ -5,15 +5,17 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.GregorianCalendar;
 import java.util.List;
 import java.util.Locale;
 
 import com.openatk.field_work.db.DatabaseHelper;
-import com.openatk.field_work.db.Field;
-import com.openatk.field_work.db.Job;
 import com.openatk.field_work.db.TableOperations;
 import com.openatk.field_work.db.TableWorkers;
-import com.openatk.field_work.db.Worker;
+import com.openatk.field_work.listeners.DatePickerListener;
+import com.openatk.field_work.models.Field;
+import com.openatk.field_work.models.Job;
+import com.openatk.field_work.models.Worker;
 
 import android.app.Activity;
 import android.app.AlertDialog;
@@ -52,11 +54,11 @@ import android.widget.Spinner;
 import android.widget.TextView;
 
 public class FragmentEditJobPopup extends Fragment implements
-		OnCheckedChangeListener, OnClickListener, OnItemSelectedListener {
+		OnCheckedChangeListener, OnClickListener, OnItemSelectedListener, DatePickerListener {
 
 	EditJobListener listener;
+	
 	private Field currentField = null;
-
 	private Job currentJob = null;
 
 	private TextView tvName;
@@ -86,30 +88,30 @@ public class FragmentEditJobPopup extends Fragment implements
 
 	private MyTextWatcher etCommentTextWatcher;
 	
+	private boolean retained = false;
+	
 	// Interface for receiving data
 	public interface EditJobListener {
-		public void EditJobSave(Job job);
-
-		public void EditJobSave(Job job, Boolean changeState, Boolean unselect);
-
-		public void EditJobDelete();
-
-		public Field EditJobGetCurrentField();
-
-		public Job EditJobGetCurrentJob();
-
-		public void EditJobDateSave(int year, int month, int day);
-
-		public void EditJobEditField();
+		public void FragmentEditJob_UpdateJob(Job job);
+		public void FragmentEditJob_UpdateWorker(Worker worker);
+		public void FragmentEditJob_Init();
+		public void FragmentEditJob_EditField();
+	}
+	
+	@Override
+	public void onAttach(Activity activity) {
+		super.onAttach(activity);
+		if (activity instanceof EditJobListener) {
+			listener = (EditJobListener) activity;
+		} else {
+			throw new ClassCastException(activity.toString() + " must implement FragmentEditJob.EditJobListener");
+		}
+		Log.d("FragmentEditJobPopup", "Attached");
 	}
 
 	@Override
-	public View onCreateView(LayoutInflater inflater, ViewGroup container,
-			Bundle savedInstanceState) {
-		View view = inflater.inflate(R.layout.fragment_edit_job_popup,
-				container, false);
-
-		dbHelper = new DatabaseHelper(this.getActivity());
+	public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
+		View view = inflater.inflate(R.layout.fragment_edit_job_popup,container, false);
 		
 		layout = (RelativeLayout) view.findViewById(R.id.edit_field_layout);
 		layInfo1 = (RelativeLayout) view.findViewById(R.id.edit_field_layInfo1);
@@ -145,223 +147,183 @@ public class FragmentEditJobPopup extends Fragment implements
 		butDone.setOnClickListener(this);
 		
 		etCommentTextWatcher = new MyTextWatcher(etComment);
-		etComment.addTextChangedListener(etCommentTextWatcher);
+		etComment.addTextChangedListener(etCommentTextWatcher); //TODO wait till after populate?
 		butDelete.setOnClickListener(this);
 		
-		loadWorkerList();
 		spinWorker.setOnItemSelectedListener(this);
-		spinWorkerAdapter = new ArrayAdapter<Worker>(this.getActivity(),
-				android.R.layout.simple_list_item_1, workerList);
+		spinWorkerAdapter = new ArrayAdapter<Worker>(this.getActivity(), android.R.layout.simple_list_item_1, workerList);
 		spinWorker.setAdapter(spinWorkerAdapter);
 		butNewWorker.setOnClickListener(this);
-
 		return view;
 	}
 
 	@Override
 	public void onActivityCreated(Bundle savedInstanceState) {
 		super.onActivityCreated(savedInstanceState);
-		getData();
-		// Return from save
-		if (savedInstanceState != null) {
-			// Populate info
-			currentJob.setStatus(savedInstanceState.getInt("EditJobStatus"));
-			currentJob.setWorkerName(savedInstanceState
-					.getString("EditJobWorkerName"));
-			currentJob.setComments(savedInstanceState
-					.getString("EditJobComments"));
-			currentJob.setDateOfOperation(savedInstanceState
-					.getString("EditJobDateOfOperation"));
+		
+		if(retained == false) {
+			retained = true;
+			//Get data to populate views
+			listener.FragmentEditJob_Init();
 		}
 	}
 
 	@Override
 	public void onSaveInstanceState(Bundle outState) {
-		if (currentJob != null)
-			outState.putInt("EditJobStatus", currentJob.getStatus());
-		if (currentJob != null)
-			outState.putString("EditJobWorkerName", currentJob.getWorkerName());
-		if (currentJob != null)
-			outState.putString("EditJobComments", currentJob.getComments());
-		if (currentJob != null)
-			outState.putString("EditJobDateOfOperation",
-					currentJob.getDateOfOperation());
 		super.onSaveInstanceState(outState);
 	}
+	private void updateJob(Job job) {
+		Log.d("FragmentEditJobPopup", "updateJob()");
 
-	private void getData() {
-		Log.d("FragmentEditJobPopup", "getData()");
-		currentField = listener.EditJobGetCurrentField();
-		currentJob = listener.EditJobGetCurrentJob();
-		// Grab data from field and populate views
-		if (currentField != null) {
-			tvAcres.setVisibility(View.VISIBLE);
-			tvAcresLabel.setVisibility(View.VISIBLE);
-			butEditField.setVisibility(View.VISIBLE);
-			if (currentField.getName().length() != 0) tvName.setText(currentField.getName());
-			tvAcres.setText(Integer.toString(currentField.getAcres()));
+		if(job.getDeleted() || job.getId() == null){
+			//Job deleted or new Job
+			//Set field to not planned
+			chkPlanned.setOnCheckedChangeListener(null);
+			chkStarted.setOnCheckedChangeListener(null);
+			chkDone.setOnCheckedChangeListener(null);
+			
+			chkPlanned.setChecked(false);
+			chkDone.setChecked(false);
+			chkStarted.setChecked(false);
+			
+			chkPlanned.setOnCheckedChangeListener(this);
+			chkStarted.setOnCheckedChangeListener(this);
+			chkDone.setOnCheckedChangeListener(this);
+			
+			//Hide comment, data, and operator until they make a job
+			this.layInfo1.setVisibility(View.INVISIBLE);
+			this.layInfo2.setVisibility(View.INVISIBLE);			
 		} else {
-			Log.d("FragmentEditJobPopup - getData", "ERROR - current field is null from activity");
-			if(currentJob != null){
+			this.layInfo1.setVisibility(View.VISIBLE);
+			this.layInfo2.setVisibility(View.VISIBLE);
+			
+			if(currentJob == null || currentJob.getStatus() != job.getStatus()){
+				chkPlanned.setOnCheckedChangeListener(null);
+				chkStarted.setOnCheckedChangeListener(null);
+				chkDone.setOnCheckedChangeListener(null);
+				
+				chkPlanned.setChecked(false);
+				chkDone.setChecked(false);
+				chkStarted.setChecked(false);
+				if(job.getStatus() == Job.STATUS_NOT_PLANNED){
+					//Hide comment, data, and operator until they make a job
+					this.layInfo1.setVisibility(View.INVISIBLE);
+					this.layInfo2.setVisibility(View.INVISIBLE);	
+				} else if(job.getStatus() == Job.STATUS_PLANNED){
+					chkPlanned.setChecked(true);
+				} else if (job.getStatus() == Job.STATUS_STARTED){
+					chkStarted.setChecked(true);
+				} else if (job.getStatus() == Job.STATUS_DONE){
+					chkDone.setChecked(true);
+				}
+				
+				chkPlanned.setOnCheckedChangeListener(this);
+				chkStarted.setOnCheckedChangeListener(this);
+				chkDone.setOnCheckedChangeListener(this);
+			}
+			
+			if(currentJob == null || currentJob.getDateOfOperation() != job.getDateOfOperation()){
+				if (dateIsToday(job.getDateOfOperation())) {
+					tvCalendar.setText("Today");
+				} else {
+					SimpleDateFormat displayFormat = new SimpleDateFormat("MMM, dd", Locale.US);
+					tvCalendar.setText(displayFormat.format(job.getDateOfOperation()));
+				}
+			}
+			
+			if(currentJob == null || currentJob.getWorkerName().contentEquals(job.getWorkerName()) == false){
+				selectWorkerInSpinner(job.getWorkerName());
+			}
+			
+			if(currentJob == null || currentJob.getComments().contentEquals(job.getComments()) == false){
+				etComment.removeTextChangedListener(etCommentTextWatcher);
+				etComment.setText(job.getComments());
+				etComment.addTextChangedListener(etCommentTextWatcher);
+			}
+			
+			if(currentField == null && (currentJob == null || currentJob.getFieldName().contentEquals(job.getFieldName()) == false)){
+				//Only populate field name from job if field doesn't exist
+				tvName.setText(job.getFieldName());
+			}
+		}
+		
+		currentJob = job;
+	}
+	private void updateField(Field field) {
+		Log.d("FragmentEditJobPopup", "updateField()");
+		
+		if(field.getDeleted()) {
+			//Field was deleted
+			//Get data from job, hide edit button and acres
+			if(currentJob != null && currentJob.getId() != null){
 				//Deleted field but it is still a job, disable field edit and acres
 				tvName.setText(currentJob.getFieldName());
 				tvAcres.setVisibility(View.GONE);
 				butEditField.setVisibility(View.GONE);
 				tvAcresLabel.setVisibility(View.GONE);
 			}
-		}
-
-		loadWorkerList();
-
-		chkPlanned.setOnCheckedChangeListener(null);
-		chkStarted.setOnCheckedChangeListener(null);
-		chkDone.setOnCheckedChangeListener(null);
-		
-		etComment.removeTextChangedListener(etCommentTextWatcher);
-		etComment.setText("");
-		etComment.addTextChangedListener(etCommentTextWatcher);
-		
-		// Grab data from job and populate views
-		if (currentJob != null) {
-			chkPlanned.setChecked(false);
-			chkDone.setChecked(false);
-			chkStarted.setChecked(false);
-			if (currentJob.getStatus() == Job.STATUS_PLANNED) {
-				chkPlanned.setChecked(true);
-			} else if (currentJob.getStatus() == Job.STATUS_STARTED) {
-				chkStarted.setChecked(true);
-			} else if (currentJob.getStatus() == Job.STATUS_DONE) {
-				chkDone.setChecked(true);
-			}
-
-			// Spinner
-			selectWorkerInSpinner(currentJob.getWorkerName());
-			etComment.setText(currentJob.getComments());
-
-			Date d = DatabaseHelper.stringToDateLocal(currentJob
-					.getDateOfOperation());
-			if (dateIsToday(d)) {
-				tvCalendar.setText("Today");
-			} else {
-				SimpleDateFormat displayFormat = new SimpleDateFormat(
-						"MMM, dd", Locale.US);
-				tvCalendar.setText(displayFormat.format(d));
+		} else {
+			tvAcres.setVisibility(View.VISIBLE);
+			butEditField.setVisibility(View.VISIBLE);
+			tvAcresLabel.setVisibility(View.VISIBLE);
+			
+			if(currentField == null || field.getName().contentEquals(currentField.getName()) == false) {
+				//Update field name
+				tvName.setText(field.getName());
 			}
 			
-			//Show comments and date and such
-			this.layInfo1.setVisibility(View.VISIBLE);
-			this.layInfo2.setVisibility(View.VISIBLE);
-		} else if(currentField != null) {
-			// New Job
-			chkPlanned.setChecked(false);
-			chkDone.setChecked(false);
-			chkStarted.setChecked(false);
-			Log.d("FragmentEditJobPopup - getData", "Making new job, currentJob is null");
-			currentJob = new Job(currentField.getName());
-			SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this.getActivity().getApplicationContext());
-			currentJob.setWorkerName(prefs.getString("WorkerName", ""));
-			// set dateChanged and dateOfOperation to Now
-			currentJob.setDateOfOperation(DatabaseHelper.dateToStringLocal(new Date()));
-			currentJob.setDateChanged(DatabaseHelper.dateToStringUTC(new Date()));
-			
-			//Hide comments and date and such till they select planned, started or done
-			this.layInfo1.setVisibility(View.INVISIBLE);
-			this.layInfo2.setVisibility(View.INVISIBLE);
+			if(currentField == null || field.getAcres() != currentField.getAcres()) {
+				tvAcres.setText(Float.toString(field.getAcres()));
+			}
 		}
-		chkPlanned.setOnCheckedChangeListener(this);
-		chkStarted.setOnCheckedChangeListener(this);
-		chkDone.setOnCheckedChangeListener(this);
+		
+		currentField = field;
 	}
-
-	public void refreshData() {
-		Log.d("FragmentEditJobPopup", "RefreshData");
-		getData();
-	}
-
-	public void updateDate(int year, int month, int day) {
+	
+	@Override
+	public void SelectDate(Date date) {
 		// Date from datepicker
-		// Month is 0 based, just add 1
-		String dateWyear = Integer.toString(year) + "-"
-				+ Integer.toString(month + 1) + "-" + Integer.toString(day);
-		SimpleDateFormat dateFormaterLocal = new SimpleDateFormat("yyyy-M-d",
-				Locale.US);
-		Date d;
-		try {
-			d = dateFormaterLocal.parse(dateWyear);
-		} catch (ParseException e) {
-			d = new Date(0);
-		}
-		currentJob.setDateOfOperation(DatabaseHelper.dateToStringLocal(d));
-		if (dateIsToday(d)) {
+		currentJob.setDateOfOperation(date);
+		if (dateIsToday(currentJob.getDateOfOperation())) {
 			tvCalendar.setText("Today");
 		} else {
-			SimpleDateFormat displayFormat = new SimpleDateFormat("MMM, dd",
-					Locale.US);
-			tvCalendar.setText(displayFormat.format(d));
+			SimpleDateFormat displayFormat = new SimpleDateFormat("MMM, dd", Locale.US);
+			tvCalendar.setText(displayFormat.format(currentJob.getDateOfOperation()));
 		}
-		flushChangesAndSave(false, false); // Save changes
-	}
-
-	@Override
-	public void onAttach(Activity activity) {
-		super.onAttach(activity);
-		if (activity instanceof EditJobListener) {
-			listener = (EditJobListener) activity;
-		} else {
-			throw new ClassCastException(activity.toString()
-					+ " must implement FragmentEditJob.EditJobListener");
-		}
-		Log.d("FragmentEditJobPopup", "Attached");
+		listener.FragmentEditJob_UpdateJob(currentJob);
 	}
 
 	@Override
 	public void onClick(View v) {
-		if (v.getId() == R.id.edit_field_butDone) {
-			// Pass all info back to activity
-			// TODO check if has changes
-			flushChangesAndSave(true);
-		} else if(v.getId() == R.id.edit_field_layout) {
+		if(v.getId() == R.id.edit_field_layout) {
+			//Clicks anywhere on the popup
 			this.closeKeyboard();
 		} else if (v.getId() == R.id.edit_field_butDelete) {
+			this.closeKeyboard();
 			new AlertDialog.Builder(this.getActivity())
 					.setTitle("Delete Job")
 					.setMessage("Are you sure you want to delete this job?")
 					.setIcon(android.R.drawable.ic_dialog_alert)
 					.setPositiveButton("Yes",
 							new DialogInterface.OnClickListener() {
-								public void onClick(DialogInterface dialog,
-										int whichButton) {
-									listener.EditJobDelete();
+								public void onClick(DialogInterface dialog, int whichButton) {
+									currentJob.setDeleted(true);
+									listener.FragmentEditJob_UpdateJob(currentJob);
 								}
 							}).setNegativeButton("No", null).show();
 		} else if (v.getId() == R.id.edit_field_butCalendar || v.getId() == R.id.edit_field_tvCalendar) {
 			this.closeKeyboard();
 			DatePickerFragment newFragment = new DatePickerFragment();
-			newFragment.setDate(DatabaseHelper.stringToDateLocal(currentJob
-					.getDateOfOperation()));
-			newFragment.show(this.getActivity().getSupportFragmentManager(),
-					"datePicker");
+			newFragment.setDate(currentJob.getDateOfOperation());
+			newFragment.show(this.getActivity().getSupportFragmentManager(), "datePicker");
 		} else if (v.getId() == R.id.edit_field_butNewOperator) {
 			// Create new worker
 			this.closeKeyboard();
 			createWorker();
 		} else if (v.getId() == R.id.edit_field_butEditField) {
-			listener.EditJobEditField();
+			this.closeKeyboard();
+			listener.FragmentEditJob_EditField();
 		}
-	}
-
-	public void flushChangesAndSave(Boolean changeState, Boolean unselect) {
-		flush();
-		listener.EditJobSave(currentJob, changeState, unselect);
-	}
-
-	public void flushChangesAndSave(Boolean changeState) {
-		flushChangesAndSave(changeState, true);
-	}
-
-	private void flush() {
-		currentJob.setDateChanged(DatabaseHelper.dateToStringUTC(new Date()));
-		currentJob.setHasChanged(1);
 	}
 
 	public int getHeight() {
@@ -394,20 +356,19 @@ public class FragmentEditJobPopup extends Fragment implements
 					if (currentJob.getStatus() == Job.STATUS_PLANNED) {
 						chkDone.setChecked(false);
 						chkStarted.setChecked(false);
-						flushChangesAndSave(false, false);
 					} else if (currentJob.getStatus() == Job.STATUS_STARTED) {
 						chkPlanned.setChecked(false);
 						chkDone.setChecked(false);
-						flushChangesAndSave(false, false);
 					} else if (currentJob.getStatus() == Job.STATUS_DONE) {
 						chkPlanned.setChecked(false);
 						chkStarted.setChecked(false);
-						flushChangesAndSave(false, false);
 					}
+					listener.FragmentEditJob_UpdateJob(currentJob);
 				}
 				this.layInfo1.setVisibility(View.VISIBLE);
 				this.layInfo2.setVisibility(View.VISIBLE);
 			} else {
+				//Stay checked if we pressed the same button over again
 				if (buttonView.getId() == R.id.edit_field_chkPlanned && currentJob.getStatus() == Job.STATUS_PLANNED) {
 					chkPlanned.setChecked(true);
 				} else if (buttonView.getId() == R.id.edit_field_chkStarted && currentJob.getStatus() == Job.STATUS_STARTED) {
@@ -446,18 +407,17 @@ public class FragmentEditJobPopup extends Fragment implements
 	public static class DatePickerFragment extends DialogFragment implements
 			DatePickerDialog.OnDateSetListener {
 
-		EditJobListener listener;
+		DatePickerListener listener;
 		Date date;
 
 		@Override
 		public void onAttach(Activity activity) {
 			// TODO Auto-generated method stub
 			super.onAttach(activity);
-			if (activity instanceof EditJobListener) {
-				listener = (EditJobListener) activity;
+			if (activity instanceof DatePickerListener) {
+				listener = (DatePickerListener) activity;
 			} else {
-				throw new ClassCastException(activity.toString()
-						+ " must implement FragmentEditJob.EditJobListener");
+				throw new ClassCastException(activity.toString() + " must implement FragmentEditJob.EditJobListener");
 			}
 			Log.d("FragmentEditJobPopup", "Attached");
 		}
@@ -481,7 +441,16 @@ public class FragmentEditJobPopup extends Fragment implements
 
 		public void onDateSet(DatePicker view, int year, int month, int day) {
 			// Do something with the date chosen by the user
-			listener.EditJobDateSave(year, month, day);
+			// Month is 0 based, just add 1
+			String dateWyear = Integer.toString(year) + "-" + Integer.toString(month + 1) + "-" + Integer.toString(day);
+			SimpleDateFormat dateFormaterLocal = new SimpleDateFormat("yyyy-M-d", Locale.US);
+			Date d;
+			try {
+				d = dateFormaterLocal.parse(dateWyear);
+			} catch (ParseException e) {
+				d = new Date(0);
+			}
+			listener.SelectDate(d);
 		}
 	}
 
@@ -507,8 +476,7 @@ public class FragmentEditJobPopup extends Fragment implements
 				this.getActivity());
 		alertDialogBuilder.setView(promptsView);
 
-		final EditText userInput = (EditText) promptsView
-				.findViewById(R.id.new_worker_dialog_name);
+		final EditText userInput = (EditText) promptsView.findViewById(R.id.new_worker_dialog_name);
 
 		// set dialog message
 		alertDialogBuilder
@@ -520,24 +488,16 @@ public class FragmentEditJobPopup extends Fragment implements
 								String name = userInput.getText().toString();
 								if (name.isEmpty() == false) {
 									// Create new worker
-									SQLiteDatabase database = dbHelper
-											.getWritableDatabase();
-									ContentValues values = new ContentValues();
-									values.put(TableOperations.COL_HAS_CHANGED,
-											1);
-									values.put(TableOperations.COL_NAME, name);
-									database.insert(TableWorkers.TABLE_NAME,
-											null, values);
-
-									dbHelper.close();
+								
+									Worker newWorker = new Worker(name);
+									listener.FragmentEditJob_UpdateWorker(newWorker);
+									
 									loadWorkerList();
 									selectWorkerInSpinner(name);
 
 									// Save this choice in preferences for next
 									// open
-									SharedPreferences prefs = PreferenceManager
-											.getDefaultSharedPreferences(getActivity()
-													.getApplicationContext());
+									SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getActivity().getApplicationContext());
 									SharedPreferences.Editor editor = prefs
 											.edit();
 									editor.putString("defaultWorker", name);
@@ -559,12 +519,13 @@ public class FragmentEditJobPopup extends Fragment implements
 		alertDialog.show();
 	}
 
-	private void loadWorkerList() {
-		if (spinWorkerAdapter != null)
-			spinWorkerAdapter.clear();
+	private void updateWorker(Worker worker) {
+		//Update worker list, add, update, or remove
+		
+		if (spinWorkerAdapter != null) spinWorkerAdapter.clear();
+		
 		SQLiteDatabase database = dbHelper.getReadableDatabase();
-		Cursor cursor = database.query(TableWorkers.TABLE_NAME,
-				TableWorkers.COLUMNS, null, null, null, null, null);
+		Cursor cursor = database.query(TableWorkers.TABLE_NAME,TableWorkers.COLUMNS, null, null, null, null, null);
 		workerList = new ArrayList<Worker>();
 		while (cursor.moveToNext()) {
 			Worker worker = Worker.cursorToWorker(cursor);
@@ -587,14 +548,11 @@ public class FragmentEditJobPopup extends Fragment implements
 			worker.setId(null);
 			worker.setName("New Operator");
 			workerList.add(worker);
-			if (spinWorkerAdapter != null)
-				spinWorkerAdapter.add(worker);
+			if (spinWorkerAdapter != null) spinWorkerAdapter.add(worker);
 
 			if (spinWorkerAdapter != null)
 				spinWorkerAdapter.notifyDataSetChanged();
-			SharedPreferences prefs = PreferenceManager
-					.getDefaultSharedPreferences(this.getActivity()
-							.getApplicationContext());
+			SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this.getActivity().getApplicationContext());
 			String toSelect = prefs.getString("defaultWorker", null);
 			selectWorkerInSpinner(toSelect);
 		} else {
@@ -687,5 +645,7 @@ public class FragmentEditJobPopup extends Fragment implements
 		InputMethodManager imm =  (InputMethodManager)getActivity().getApplicationContext().getSystemService(Context.INPUT_METHOD_SERVICE);
         imm.hideSoftInputFromWindow(this.etComment.getWindowToken(), 0);
 	}
+
+
 	
 }

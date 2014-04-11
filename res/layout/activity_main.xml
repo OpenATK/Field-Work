@@ -6,10 +6,10 @@
     tools:context=".MainActivity" >
 
 	<fragment
-	    android:id="@+id/map"
-	    android:name="pl.mg6.android.maps.extensions.SupportMapFragment"
-	    android:layout_width="match_parent"
-	    android:layout_height="match_parent" />
+	        android:id="@+id/map"
+	        android:name="com.openatk.openatklib.atkmap.ATKSupportMapFragment"
+	        android:layout_width="match_parent"
+	        android:layout_height="match_parent" />
 	
 	<fragment
 	    android:id="@+id/list_view"
