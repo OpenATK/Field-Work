@@ -1,10 +1,18 @@
 package com.openatk.field_work;
 
-import com.openatk.field_work.db.Field;
+
+import java.text.DecimalFormat;
+import java.util.Date;
+
+import com.openatk.field_work.db.DatabaseHelper;
+import com.openatk.field_work.db.TableFields;
+import com.openatk.field_work.models.Field;
 
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.content.ContentValues;
 import android.content.DialogInterface;
+import android.database.sqlite.SQLiteDatabase;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
 import android.util.Log;
@@ -25,40 +33,31 @@ public class FragmentAddField extends Fragment implements OnClickListener, OnChe
 	private EditText name;
 	private EditText acres;
 	private CheckBox autoAcres;
-	private AddFieldListener listener;
+	private FragmentAddFieldListener listener;
 	private float autoAcresValue;
 	
+	private Field field;
 	
 	// Interface for receiving data
-	public interface AddFieldListener {
-		public void AddFieldUndo();
-
-		public void AddFieldDone(String name, Integer acres);
-
-		public void AddFieldDelete();
-
-		public Field AddFieldGetCurrentField();
+	public interface FragmentAddFieldListener {
+		public void FragmentAddField_Undo(); //This -> Listener
+		public void FragmentAddField_Init(); //This -> Listener
+		public void FragmentAddField_Done(Field field);  //This -> Listener
 	}
 
 	@Override
-	public View onCreateView(LayoutInflater inflater, ViewGroup container,
-			Bundle savedInstanceState) {
-		View view = inflater.inflate(R.layout.fragment_add_field, container,
-				false);
+	public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
+		View view = inflater.inflate(R.layout.fragment_add_field, container,false);
 
-		ImageButton butDone = (ImageButton) view
-				.findViewById(R.id.add_field_done);
-		ImageButton butUndo = (ImageButton) view
-				.findViewById(R.id.add_field_undo);
-		ImageButton butDelete = (ImageButton) view
-				.findViewById(R.id.add_field_delete);
+		ImageButton butDone = (ImageButton) view.findViewById(R.id.add_field_done);
+		ImageButton butUndo = (ImageButton) view.findViewById(R.id.add_field_undo);
+		ImageButton butDelete = (ImageButton) view.findViewById(R.id.add_field_delete);
 
 		name = (EditText) view.findViewById(R.id.add_field_name);
 		acres = (EditText) view.findViewById(R.id.add_field_etAcres);
 		autoAcres = (CheckBox) view.findViewById(R.id.add_field_chkAutoAcres);
 		
 		acres.setOnFocusChangeListener(new OnFocusChangeListener() {
-
 			@Override
 			public void onFocusChange(View v, boolean hasFocus) {
 				if (hasFocus) {
@@ -100,20 +99,28 @@ public class FragmentAddField extends Fragment implements OnClickListener, OnChe
 	public void onActivityCreated(Bundle savedInstanceState) {
 		// TODO Auto-generated method stub
 		super.onActivityCreated(savedInstanceState);
-		getData();
+		listener.FragmentAddField_Init();
 	}
 
-	public void getData() {
-		if (listener == null) {
-			Log.d("NULL", "NULL");
-		}
-		Field field = listener.AddFieldGetCurrentField();
+	public void init(Field field) {
+		this.field = field;
+		
 		if (field != null) {
 			name.setText(field.getName());
-			acres.setText(Integer.toString(field.getAcres()) + " ac");
-			autoAcres.setChecked(false);
+			String strAcres;
+			if(field.getAcres() < 3.0f){
+				DecimalFormat df = new DecimalFormat("#.#");
+				strAcres = df.format(field.getAcres());
+			} else {
+				DecimalFormat df = new DecimalFormat("#");
+				strAcres = df.format(field.getAcres());
+			}
+			acres.setText(strAcres + " ac");
+			autoAcres.setChecked(false); //TODO only turn off if calculated acres != fields acres
 			acres.setEnabled(true);
 		} else {
+			//New field
+			this.field = new Field();
 			name.setText("");
 			acres.setText("");
 			autoAcres.setChecked(true);
@@ -124,11 +131,10 @@ public class FragmentAddField extends Fragment implements OnClickListener, OnChe
 	@Override
 	public void onAttach(Activity activity) {
 		super.onAttach(activity);
-		if (activity instanceof AddFieldListener) {
-			listener = (AddFieldListener) activity;
+		if (activity instanceof FragmentAddFieldListener) {
+			listener = (FragmentAddFieldListener) activity;
 		} else {
-			throw new ClassCastException(activity.toString()
-					+ " must implement FragmentAddField.OnClickListener");
+			throw new ClassCastException(activity.toString() + " must implement FragmentAddField.FragmentAddFieldListener");
 		}
 		Log.d("FragmentAddField", "Attached");
 	}
@@ -141,16 +147,20 @@ public class FragmentAddField extends Fragment implements OnClickListener, OnChe
 	@Override
 	public void onClick(View v) {
 		if (v.getId() == R.id.add_field_done) {
-			Integer intAcres = 0;
+			Float fltAcres = 0.0f;
 			String strAcres = acres.getText().toString();
 			strAcres = strAcres.replace(" ", "");
 			strAcres = strAcres.replace("ac", "");
 			if (strAcres.length() > 0) {
-				intAcres = Integer.parseInt(strAcres);
+				fltAcres = Float.parseFloat(strAcres);
 			}
-			listener.AddFieldDone(name.getText().toString(), intAcres);
+			
+			this.field.setAcres(fltAcres);
+			this.field.setName(name.getText().toString());
+			
+			listener.FragmentAddField_Done(this.field);
 		} else if (v.getId() == R.id.add_field_undo) {
-			listener.AddFieldUndo();
+			listener.FragmentAddField_Undo();
 		} else if (v.getId() == R.id.add_field_delete) {
 			new AlertDialog.Builder(this.getActivity())
 			.setTitle("Delete Field")
@@ -160,11 +170,13 @@ public class FragmentAddField extends Fragment implements OnClickListener, OnChe
 					new DialogInterface.OnClickListener() {
 						public void onClick(DialogInterface dialog,
 								int whichButton) {
-							listener.AddFieldDelete();
+							field.setDeleted(true);
+							listener.FragmentAddField_Done(field);
 						}
 					}).setNegativeButton("No", null).show();
 		}
 	}
+	
 	
 	public void autoAcres(float acres){
 		Log.d("FragmentAddField", "autoAcres:" + Float.toString(acres));
@@ -177,9 +189,7 @@ public class FragmentAddField extends Fragment implements OnClickListener, OnChe
 
 	@Override
 	public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
-		Log.d("FragmentAddField", "Check click");
 		if(buttonView.getId() == R.id.add_field_chkAutoAcres){
-			Log.d("FragmentAddField", "Check Auto acres");
 			if(isChecked){
 				Log.d("FragmentAddField", "Checked");
 				int newAcres = (int) autoAcresValue;

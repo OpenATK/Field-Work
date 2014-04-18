@@ -22,14 +22,11 @@ import android.util.Log;
 
 import com.openatk.field_work.MainActivity;
 import com.openatk.field_work.db.DatabaseHelper;
-import com.openatk.field_work.db.Field;
-import com.openatk.field_work.db.Job;
-import com.openatk.field_work.db.Operation;
 import com.openatk.field_work.db.TableFields;
 import com.openatk.field_work.db.TableJobs;
 import com.openatk.field_work.db.TableOperations;
 import com.openatk.field_work.db.TableWorkers;
-import com.openatk.field_work.db.Worker;
+import com.openatk.field_work.models.Operation;
 
 public class SyncController  {
 

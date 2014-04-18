@@ -2,8 +2,11 @@ package com.openatk.field_work.db;
 
 import java.util.Date;
 
+import com.openatk.field_work.models.Field;
+import com.openatk.field_work.models.Operation;
 import com.openatk.field_work.models.Worker;
 
+import android.content.ContentValues;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.util.Log;
@@ -68,5 +71,89 @@ public class TableWorkers {
 		} else {
 			return null;
 		}
+	}
+	
+	
+	public static Worker FindWorkerById(DatabaseHelper dbHelper, Integer id) {
+		if(dbHelper == null) return null;
+
+		if (id != null) {
+			SQLiteDatabase database = dbHelper.getReadableDatabase();
+			// Find current field
+			Worker item = null;
+			String where = TableWorkers.COL_ID + " = " + Integer.toString(id) + " AND " + TableWorkers.COL_DELETED + " = 0";
+			Cursor cursor = database.query(TableWorkers.TABLE_NAME, TableWorkers.COLUMNS, where, null, null, null, null);
+			if (cursor.moveToFirst()) {
+				item = TableWorkers.cursorToWorker(cursor);
+			}
+			cursor.close();
+			database.close();
+			dbHelper.close();
+			return item;
+		} else {
+			return null;
+		}
+	}
+	
+	public static Worker FindWorkerByRemoteId(DatabaseHelper dbHelper, String remoteId) {
+		if(dbHelper == null) return null;
+
+		if (remoteId != null) {
+			SQLiteDatabase database = dbHelper.getReadableDatabase();
+			// Find current field
+			Worker item = null;
+			String where = TableWorkers.COL_REMOTE_ID + " = '" + remoteId + "' AND " + TableWorkers.COL_DELETED + " = 0";
+			Cursor cursor = database.query(TableWorkers.TABLE_NAME, TableWorkers.COLUMNS, where, null, null, null, null);
+			if (cursor.moveToFirst()) {
+				item = TableWorkers.cursorToWorker(cursor);
+			}
+			cursor.close();
+			database.close();
+			dbHelper.close();
+			return item;
+		} else {
+			return null;
+		}
+	}
+	
+	public static boolean updateWorker(DatabaseHelper dbHelper, Worker worker){
+		//Inserts, updates
+		//Only non-null fields are updated
+		//Used by both LibTrello and MainActivity to update database data
+		
+		boolean ret = false;
+		SQLiteDatabase database = dbHelper.getWritableDatabase();
+		
+		ContentValues values = new ContentValues();
+		if(worker.getRemote_id() != null) values.put(TableWorkers.COL_REMOTE_ID, worker.getRemote_id());
+		
+		if(worker.getDateNameChanged() != null) values.put(TableWorkers.COL_NAME_CHANGED, DatabaseHelper.dateToStringUTC(worker.getDateNameChanged()));
+		if(worker.getName() != null) values.put(TableWorkers.COL_NAME, worker.getName());
+		
+		if(worker.getDeleted() != null) values.put(TableWorkers.COL_DELETED, (worker.getDeleted() == false ? 0 : 1));
+		if(worker.getDateDeletedChanged() != null) values.put(TableWorkers.COL_DELETED_CHANGED, DatabaseHelper.dateToStringUTC(worker.getDateNameChanged()));
+
+		
+		if(worker.getId() == null && (worker.getRemote_id() == null || worker.getRemote_id().length() == 0)) {
+			//INSERT This is a new worker, has no id's
+			int id = (int) database.insert(TableWorkers.TABLE_NAME, null, values);
+			worker.setId(id);
+			ret = true;
+		} else {
+			//UPDATE
+			//If have id, lookup by that, it's fastest
+			String where;
+			if(worker.getId() != null){
+				where = TableWorkers.COL_ID + " = " + Integer.toString(worker.getId());
+			} else {
+				where = TableWorkers.COL_REMOTE_ID + " = '" + worker.getRemote_id() + "'";
+			}
+			database.update(TableWorkers.TABLE_NAME, values, where, null);
+			ret = true;
+		}
+		
+		database.close();
+		dbHelper.close();
+		return ret;
 	}
 }

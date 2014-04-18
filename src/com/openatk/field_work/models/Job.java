@@ -11,33 +11,55 @@ public class Job {
 	
 	private Integer id = null;
 	private String remote_id = null;
-	private String fieldName = "";
+	
+	private String fieldName = null;
+	private Date dateFieldNameChanged = null;
 
-	private Integer operationId = 0;
+	private Integer operationId = null;
 	private Date dateOperationIdChanged = null;
 
 	private Date dateOfOperation = null;
 	private Date dateDateOfOperationChanged = null;
 
-	private String workerName = "";
+	private String workerName = null;
 	private Date dateWorkerNameChanged = null;
 
 	
-	private Integer status = STATUS_NOT_PLANNED;
+	private Integer status = null;
 	private Date dateStatusChanged = null;
 
-	private String comments = "";
+	private String comments = null;
 	private Date dateCommentsChanged = null;
 
-	private Boolean deleted = false;
+	private Boolean deleted = null;
 	private Date dateDeletedChanged = null;
 	
 	
 	public Job(){
-		//Used for fields that don't have jobs yet
+		//Used for updating
+		this.operationId = null;
+		this.status = null;
+		this.deleted = null;
+		this.comments = null;
+		this.workerName = null;
+		this.fieldName = null;
 	}
 	
-	public Job(Integer id, String remote_id, String fieldName, Integer operationId,
+	public Job(int operationId, String fieldName){
+		//Used for creating a new job locally
+		this.status = STATUS_NOT_PLANNED;
+		this.dateStatusChanged = new Date();
+		this.deleted = false;
+		this.dateDeletedChanged = new Date();
+		this.comments = "";
+		this.dateCommentsChanged = new Date();
+		this.operationId = operationId;
+		this.dateOperationIdChanged = new Date();
+		this.fieldName = fieldName;
+		this.dateFieldNameChanged = new Date();
+	}
+	
+	public Job(Integer id, String remote_id, String fieldName, Date dateFieldNameChanged, Integer operationId,
 			Date dateOperationIdChanged, Date dateOfOperation,
 			Date dateDateOfOperationChanged, String workerName,
 			Date dateWorkerNameChanged, Integer status,
@@ -53,6 +75,7 @@ public class Job {
 		this.workerName = workerName;
 		this.dateWorkerNameChanged = dateWorkerNameChanged;
 		this.fieldName = fieldName;
+		this.dateFieldNameChanged = dateFieldNameChanged;
 		this.status = status;
 		this.dateStatusChanged = dateStatusChanged;
 		this.comments = comments;
@@ -114,6 +137,12 @@ public class Job {
 	}
 	public void setFieldName(String fieldName) {
 		this.fieldName = fieldName;
+	}
+	public Date getDateFieldNameChanged() {
+		return dateFieldNameChanged;
+	}
+	public void setDateFieldNameChanged(Date dateFieldNameChanged) {
+		this.dateFieldNameChanged = dateFieldNameChanged;
 	}
 	public Integer getStatus() {
 		return status;

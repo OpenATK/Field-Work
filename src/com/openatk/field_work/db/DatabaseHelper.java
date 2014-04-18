@@ -6,12 +6,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
-import java.util.StringTokenizer;
 import java.util.TimeZone;
-
-import com.google.android.gms.maps.model.LatLng;
-import com.google.android.gms.maps.model.PolygonOptions;
-import com.openatk.field_work.drawing.MyPolygon;
 import com.openatk.field_work.models.Field;
 import com.openatk.field_work.models.Job;
 import com.openatk.field_work.models.Worker;
@@ -21,7 +16,6 @@ import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
-import android.util.Log;
 
 public class DatabaseHelper extends SQLiteOpenHelper {
 	
@@ -147,51 +141,33 @@ public class DatabaseHelper extends SQLiteOpenHelper {
 		return jobs;
 	}
 
-	
-	
-	//Workers
-	public int updateWorker(Worker worker){
-		return updateWorker(this, worker);
+	public List<Worker> readWorkers(){
+		return DatabaseHelper.readWorkers(this);
 	}
-	public static int updateWorker(DatabaseHelper dbHelper, Worker worker){
-		//Inserts, updates
-		//Only non-null fields are updated
-		//Used by both LibTrello and MainActivity to update database data
+	public static List<Worker> readWorkers(DatabaseHelper dbHelper){
+		List<Worker> workers = new ArrayList<Worker>();
+		SQLiteDatabase database = dbHelper.getReadableDatabase();
 
-		int ret = -1;
-		SQLiteDatabase database = dbHelper.getWritableDatabase();
-		
-		ContentValues values = new ContentValues();
-				
-		if(worker.getRemote_id() != null) values.put(TableWorkers.COL_REMOTE_ID, worker.getRemote_id());
-		if(worker.getDateNameChanged() != null) values.put(TableWorkers.COL_NAME_CHANGED, DatabaseHelper.dateToStringUTC(worker.getDateNameChanged()));
-		if(worker.getName() != null) values.put(TableWorkers.COL_NAME, worker.getName());
-		
-		if(worker.getId() == null && worker.getRemote_id() == null) {
-			//INSERT This is a new worker, has no id's
-			ret = (int) database.insert(TableWorkers.TABLE_NAME, null, values);
-		} else {
-			//UPDATE
-			//If have id, lookup by that, it's fastest
-			String where;
-			if(worker.getId() != null){
-				where = TableWorkers.COL_ID + " = " + Integer.toString(worker.getId());
-			} else {
-				where = TableWorkers.COL_REMOTE_ID + " = '" + worker.getRemote_id() + "'";
-			}
-			ret = database.update(TableWorkers.TABLE_NAME, values, where, null);
+		Cursor cursor = database.query(TableWorkers.TABLE_NAME, TableWorkers.COLUMNS, null, null, null, null, null);
+		while (cursor.moveToNext()) {
+			workers.add(TableWorkers.cursorToWorker(cursor));
 		}
+		cursor.close();
 		
 		database.close();
 		dbHelper.close();
-		return ret;
+		return workers;
 	}
 	
+	
+	public boolean updateWorker(Worker worker){
+		return TableWorkers.updateWorker(this, worker);
+	}
+	
+	
+	
 	//TODO delete worker (only called by mainactivity after views are updated from isDeleted)
-	
-	
-	
-	
+
 	
 	/*public static Field FindFieldByName(SQLiteDatabase database, String name){
 		if(name != null){

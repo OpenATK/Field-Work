@@ -192,15 +192,7 @@
 	    android:layout_height="wrap_content"
 	    android:layout_centerInParent="true"
 	    android:layout_below="@+id/edit_field_layInfo1">
-		<ImageButton 
-	        android:id="@+id/edit_field_butDone"
-	        android:layout_width="32dp"
-	        android:layout_height="32dp"
-	        android:contentDescription=""
-	        android:layout_alignParentLeft="true"
-	        android:layout_centerVertical="true"
-	        android:background="@drawable/check_ok"
-	        />
+	
 		<ImageButton 
 	        android:id="@+id/edit_field_butDelete"
 	        android:layout_width="32dp"
@@ -213,7 +205,7 @@
 		<EditText 
 			android:id="@+id/edit_field_etComment"
 			android:layout_centerVertical="true"
-			android:layout_toRightOf="@+id/edit_field_butDone"
+			android:layout_alignParentLeft="true"
 			android:layout_toLeftOf="@+id/edit_field_butDelete"
 			android:layout_width="0dp"
 			android:layout_height="wrap_content"

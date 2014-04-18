@@ -53,8 +53,6 @@ public class Field {
 	public ATKPolygon getATKPolygon(){
 		return new ATKPolygon(this.id, this.boundary);
 	}
-
-	
 	
 	//---------- Auto generated Getters and setters -------------
 	public Integer getId() {

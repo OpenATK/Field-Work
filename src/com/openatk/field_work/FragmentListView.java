@@ -22,10 +22,10 @@ import android.widget.TextView;
 
 import com.openatk.field_work.db.Category;
 import com.openatk.field_work.db.DatabaseHelper;
-import com.openatk.field_work.db.Field;
-import com.openatk.field_work.db.Job;
 import com.openatk.field_work.db.TableFields;
 import com.openatk.field_work.db.TableJobs;
+import com.openatk.field_work.models.Field;
+import com.openatk.field_work.models.Job;
 
 public class FragmentListView extends Fragment implements OnClickListener {
 	private DatabaseHelper dbHelper;
@@ -43,7 +43,7 @@ public class FragmentListView extends Fragment implements OnClickListener {
 	private View viewDone;
 	private View viewNotPlanned;
 
-	FragmentEditJobPopup fragmentEditField = null;
+	FragmentJob fragmentEditField = null;
 	
 	List<JobHolder> jobLayouts = new ArrayList<JobHolder>();
 
@@ -130,7 +130,7 @@ public class FragmentListView extends Fragment implements OnClickListener {
 		Cursor cursor = database.query(TableJobs.TABLE_NAME, TableJobs.COLUMNS,
 				where, null, null, null, null);
 		while (cursor.moveToNext()) {
-			Job newJob = Job.cursorToJob(cursor);
+			Job newJob = TableJobs.cursorToJob(cursor);
 			if (newJob.getStatus() == Job.STATUS_PLANNED) {
 				planned.addJob(newJob);
 			} else if (newJob.getStatus() == Job.STATUS_STARTED) {
@@ -248,7 +248,7 @@ public class FragmentListView extends Fragment implements OnClickListener {
 			categoriesLinearLayout.addView(toAdd);
 			
 			// Add fields to category
-			int catAcres = 0;
+			float catAcres = 0;
 			for (int j = 0; j < jobList.size(); j++) {
 				View viewJob = vi.inflate(R.layout.list_view_job, null);
 				TextView jobDate = (TextView) viewJob
@@ -266,15 +266,12 @@ public class FragmentListView extends Fragment implements OnClickListener {
 				RelativeLayout fullJob = (RelativeLayout) viewJob
 						.findViewById(R.id.list_view_job_full);
 
-				jobDate.setText(jobList.get(j).getDateOfOperation());
-				SQLiteDatabase database2 = dbHelper.getReadableDatabase();
-				Field theField = Field.FindFieldByName(database2, jobList
-						.get(j).getFieldName());
+				jobDate.setText(DatabaseHelper.dateToStringLocal(jobList.get(j).getDateOfOperation()));
+				Field theField = TableFields.FindFieldByName(dbHelper, jobList.get(j).getFieldName());
 				String acres = "";
 				if (theField != null) {
 					if (theField.getAcres() != 0) {
-						acres = acres + " - "
-								+ Integer.toString(theField.getAcres()) + " ac";
+						acres = acres + " - " + Float.toString(theField.getAcres()) + " ac";
 						catAcres = catAcres + theField.getAcres();
 					} else {
 						jobImage.setBackgroundResource(R.drawable.boundary_none);
@@ -299,7 +296,7 @@ public class FragmentListView extends Fragment implements OnClickListener {
 				fullJob.setOnClickListener(this);
 			}
 			
-			holder.txtTitle.setText(Integer.toString(catAcres) + " ac in " + Integer.toString(catJobCount) + " fields " + catTitle);
+			holder.txtTitle.setText(Float.toString(catAcres) + " ac in " + Integer.toString(catJobCount) + " fields " + catTitle);
 		}
 		
 		selectJob(listener.ListViewGetCurrentFieldName());

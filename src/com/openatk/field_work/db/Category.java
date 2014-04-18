@@ -2,6 +2,8 @@ package com.openatk.field_work.db;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.openatk.field_work.models.Job;
+
 public class Category {
 	private String title = null;
 	private List<Job> jobs = null;

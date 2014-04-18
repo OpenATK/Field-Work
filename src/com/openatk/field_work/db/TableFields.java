@@ -7,10 +7,14 @@ import java.util.StringTokenizer;
 
 import com.google.android.gms.maps.model.LatLng;
 import com.openatk.field_work.models.Field;
+import com.openatk.field_work.models.Operation;
+import com.openatk.field_work.models.Worker;
 
+import android.content.ContentValues;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.util.Log;
+import android.widget.Toast;
 
 public class TableFields {
 	// Database table
@@ -97,11 +101,121 @@ public class TableFields {
 	public static List<LatLng> StringToBoundary(String boundary){
 		StringTokenizer tokens = new StringTokenizer(boundary, ",");
 		List<LatLng> points = new ArrayList<LatLng>();
-		while (tokens.hasMoreTokens()) {
+		while (tokens.countTokens() > 1) {
 			String lat = tokens.nextToken();
 			String lng = tokens.nextToken();
 			points.add(new LatLng(Double.parseDouble(lat), Double.parseDouble(lng)));
 		}
 		return points;
 	}
+	
+	public static String BoundaryToString(List<LatLng>  boundary){
+		String strNewBoundary = "";
+		if(boundary != null && boundary.isEmpty() == false){
+			// Generate boundary
+			StringBuilder newBoundary = new StringBuilder(boundary.size() * 20);
+			for (int i = 0; i < boundary.size(); i++) {
+				newBoundary.append(boundary.get(i).latitude);
+				newBoundary.append(",");
+				newBoundary.append(boundary.get(i).longitude);
+				newBoundary.append(",");
+			}
+			newBoundary.deleteCharAt(newBoundary.length() - 1);
+			strNewBoundary = newBoundary.toString();
+		}
+		return strNewBoundary;
+	}
+	
+	public static Field FindFieldByName(DatabaseHelper dbHelper, String name) {
+		if(dbHelper == null) return null;
+		
+		if (name != null) {
+			SQLiteDatabase database = dbHelper.getReadableDatabase();
+			// Find current field
+			Field theField = null;
+			String where = TableFields.COL_NAME + " = '" + name + "' AND " + TableFields.COL_DELETED + " = 0";
+			Cursor cursor = database.query(TableFields.TABLE_NAME,
+					TableFields.COLUMNS, where, null, null, null, null);
+			if (cursor.moveToFirst()) {
+				theField = TableFields.cursorToField(cursor);
+			}
+			cursor.close();
+			database.close();
+			dbHelper.close();
+			return theField;
+		} else {
+			return null;
+		}
+	}
+
+	public static Field FindFieldById(DatabaseHelper dbHelper, Integer id) {
+		if(dbHelper == null) return null;
+
+		if (id != null) {
+			SQLiteDatabase database = dbHelper.getReadableDatabase();
+			// Find current field
+			Field theField = null;
+			String where = TableFields.COL_ID + " = " + Integer.toString(id) + " AND " + TableFields.COL_DELETED + " = 0";
+			Cursor cursor = database.query(TableFields.TABLE_NAME,TableFields.COLUMNS, where, null, null, null, null);
+			if (cursor.moveToFirst()) {
+				theField = TableFields.cursorToField(cursor);
+			}
+			cursor.close();
+			database.close();
+			dbHelper.close();
+			return theField;
+		} else {
+			return null;
+		}
+	}
+	
+	
+	public static boolean updateField(DatabaseHelper dbHelper, Field field){
+		//Inserts, updates
+		//Only non-null fields are updated
+		//Used by both LibTrello and MainActivity to update database data
+		
+		boolean ret = false;
+		SQLiteDatabase database = dbHelper.getWritableDatabase();
+		
+		ContentValues values = new ContentValues();
+		if(field.getRemote_id() != null) values.put(TableFields.COL_REMOTE_ID, field.getRemote_id());
+		
+		if(field.getDateNameChanged() != null) values.put(TableFields.COL_NAME_CHANGED, DatabaseHelper.dateToStringUTC(field.getDateNameChanged()));
+		if(field.getName() != null) values.put(TableFields.COL_NAME, field.getName());
+		
+		if(field.getAcres() != null) values.put(TableFields.COL_ACRES, field.getAcres());
+		if(field.getDateAcresChanged() != null) values.put(TableFields.COL_ACRES_CHANGED, DatabaseHelper.dateToStringUTC(field.getDateAcresChanged()));
+
+		
+		if(field.getBoundary() != null) values.put(TableFields.COL_BOUNDARY, TableFields.BoundaryToString(field.getBoundary()));
+		if(field.getDateBoundaryChanged() != null) values.put(TableFields.COL_BOUNDARY_CHANGED, DatabaseHelper.dateToStringUTC(field.getDateBoundaryChanged()));
+
+		if(field.getDeleted() != null) values.put(TableFields.COL_DELETED, (field.getDeleted() == false ? 0 : 1));
+		if(field.getDateDeleted() != null) values.put(TableFields.COL_DELETED_CHANGED, DatabaseHelper.dateToStringUTC(field.getDateNameChanged()));
+
+		
+		if(field.getId() == null && (field.getRemote_id() == null || field.getRemote_id().length() == 0)) {
+			//INSERT This is a new worker, has no id's
+			int id = (int) database.insert(TableFields.TABLE_NAME, null, values);
+			field.setId(id);
+			ret = true;
+		} else {
+			//UPDATE
+			//If have id, lookup by that, it's fastest
+			String where;
+			if(field.getId() != null){
+				where = TableFields.COL_ID + " = " + Integer.toString(field.getId());
+			} else {
+				where = TableFields.COL_REMOTE_ID + " = '" + field.getRemote_id() + "'";
+			}
+			database.update(TableFields.TABLE_NAME, values, where, null);
+			ret = true;
+		}
+		
+		database.close();
+		dbHelper.close();
+		return ret;
+	}
+	
 }

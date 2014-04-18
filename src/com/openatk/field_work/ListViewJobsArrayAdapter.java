@@ -4,7 +4,7 @@ import java.util.List;
 
 import com.openatk.field_work.db.Category;
 import com.openatk.field_work.db.DatabaseHelper;
-import com.openatk.field_work.db.Job;
+import com.openatk.field_work.models.Job;
 
 import android.content.ContentValues;
 import android.content.Context;
@@ -75,7 +75,7 @@ public class ListViewJobsArrayAdapter extends ArrayAdapter<Job> {
 		} else {
 			Job job = jobs.get(position);
 			holder.txtTitle.setText(job.getFieldName()); //TODO add acres
-			holder.txtDate.setText(job.getDateOfOperation());
+			holder.txtDate.setText(DatabaseHelper.dateToStringLocal(job.getDateOfOperation()));
 			holder.txtWorker.setText(job.getWorkerName());
 		}
 		return row;
