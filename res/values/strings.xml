@@ -7,4 +7,7 @@
         <item >Disc 2012</item>
         <item >Chisel 2012</item>
     </string-array>
+    
+	<string name="trello_perm_desc">Let apps access your trello synced data</string>
+    <string name="trello_perm_label">Trello Access</string>
 </resources>

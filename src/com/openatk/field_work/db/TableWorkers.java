@@ -100,9 +100,8 @@ public class TableWorkers {
 
 		if (remoteId != null) {
 			SQLiteDatabase database = dbHelper.getReadableDatabase();
-			// Find current field
 			Worker item = null;
-			String where = TableWorkers.COL_REMOTE_ID + " = '" + remoteId + "' AND " + TableWorkers.COL_DELETED + " = 0";
+			String where = TableWorkers.COL_REMOTE_ID + " = '" + remoteId + "'";
 			Cursor cursor = database.query(TableWorkers.TABLE_NAME, TableWorkers.COLUMNS, where, null, null, null, null);
 			if (cursor.moveToFirst()) {
 				item = TableWorkers.cursorToWorker(cursor);
@@ -122,7 +121,6 @@ public class TableWorkers {
 		//Used by both LibTrello and MainActivity to update database data
 		
 		boolean ret = false;
-		SQLiteDatabase database = dbHelper.getWritableDatabase();
 		
 		ContentValues values = new ContentValues();
 		if(worker.getRemote_id() != null) values.put(TableWorkers.COL_REMOTE_ID, worker.getRemote_id());
@@ -131,16 +129,39 @@ public class TableWorkers {
 		if(worker.getName() != null) values.put(TableWorkers.COL_NAME, worker.getName());
 		
 		if(worker.getDeleted() != null) values.put(TableWorkers.COL_DELETED, (worker.getDeleted() == false ? 0 : 1));
-		if(worker.getDateDeletedChanged() != null) values.put(TableWorkers.COL_DELETED_CHANGED, DatabaseHelper.dateToStringUTC(worker.getDateNameChanged()));
+		if(worker.getDateDeletedChanged() != null) values.put(TableWorkers.COL_DELETED_CHANGED, DatabaseHelper.dateToStringUTC(worker.getDateDeletedChanged()));
 
+		if(values.size() > 0){
+			SQLiteDatabase database = dbHelper.getWritableDatabase();
+			if(worker.getId() == null) {
+				//INSERT This is a new worker, has no id's
+				int id = (int) database.insert(TableWorkers.TABLE_NAME, null, values);
+				worker.setId(id);
+				ret = true;
+			} else {
+				//UPDATE
+				
+				String where = TableWorkers.COL_ID + " = " + Integer.toString(worker.getId());
+				database.update(TableWorkers.TABLE_NAME, values, where, null);
+				ret = true;
+			}
+			
+			database.close();
+			dbHelper.close();
+		}
+		return ret;
+	}
+	public static boolean deleteWorker(DatabaseHelper dbHelper, Worker worker){
+		//Delete worker by local id or Trello id
+		//Used by MyTrelloContentProvider
 		
+		boolean ret = false;
+		SQLiteDatabase database = dbHelper.getWritableDatabase();
 		if(worker.getId() == null && (worker.getRemote_id() == null || worker.getRemote_id().length() == 0)) {
-			//INSERT This is a new worker, has no id's
-			int id = (int) database.insert(TableWorkers.TABLE_NAME, null, values);
-			worker.setId(id);
-			ret = true;
+			//Can't delete without an id
+			ret = false;
 		} else {
-			//UPDATE
+			//DELETE
 			//If have id, lookup by that, it's fastest
 			String where;
 			if(worker.getId() != null){
@@ -148,12 +169,21 @@ public class TableWorkers {
 			} else {
 				where = TableWorkers.COL_REMOTE_ID + " = '" + worker.getRemote_id() + "'";
 			}
-			database.update(TableWorkers.TABLE_NAME, values, where, null);
+			database.delete(TableWorkers.TABLE_NAME, where, null);
 			ret = true;
 		}
-		
 		database.close();
 		dbHelper.close();
 		return ret;
+	}
+	public static boolean deleteAll(DatabaseHelper dbHelper){
+		//Deleted all workers in the db
+		//Used by MyTrelloContentProvider
+		
+		SQLiteDatabase database = dbHelper.getWritableDatabase();
+		database.delete(TableWorkers.TABLE_NAME, null, null);
+		database.close();
+		dbHelper.close();
+		return true;
 	}
 }

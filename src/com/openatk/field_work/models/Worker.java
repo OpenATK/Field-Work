@@ -8,10 +8,17 @@ public class Worker {
 	private Date dateNameChanged = null;
 	private String name = "";
 	
-	private Boolean deleted = false;
+	private Boolean deleted = null;
 	private Date dateDeletedChanged = null;
 
-	
+	public Worker() {
+		this.remote_id = null;
+		this.dateNameChanged = null;
+		this. name = null;
+		this.deleted = null;
+		this.dateDeletedChanged = null;
+	}
+		
 	public Worker(String name) {
 		this.name = name;
 		this.dateNameChanged = new Date();

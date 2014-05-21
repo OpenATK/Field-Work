@@ -7,17 +7,23 @@ import java.util.Date;
 import com.openatk.field_work.db.DatabaseHelper;
 import com.openatk.field_work.db.TableFields;
 import com.openatk.field_work.models.Field;
+import com.openatk.field_work.views.FieldView;
+import com.openatk.openatklib.atkmap.listeners.ATKPolygonDrawListener;
+import com.openatk.openatklib.atkmap.views.ATKPolygonView;
 
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.ContentValues;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.database.sqlite.SQLiteDatabase;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
+import android.text.InputType;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.view.WindowManager;
 import android.view.View.OnClickListener;
 import android.view.View.OnFocusChangeListener;
 import android.view.ViewGroup;
@@ -28,7 +34,7 @@ import android.widget.CompoundButton.OnCheckedChangeListener;
 import android.widget.EditText;
 import android.widget.ImageButton;
 
-public class FragmentAddField extends Fragment implements OnClickListener, OnCheckedChangeListener {
+public class FragmentAddField extends Fragment implements OnClickListener, OnCheckedChangeListener, ATKPolygonDrawListener {
 
 	private EditText name;
 	private EditText acres;
@@ -36,13 +42,16 @@ public class FragmentAddField extends Fragment implements OnClickListener, OnChe
 	private FragmentAddFieldListener listener;
 	private float autoAcresValue;
 	
-	private Field field;
+	private FieldView fieldview;
+	public boolean keyboardShowing = false;
+	
+	private static float DECIMAL_ACRES_LIMIT = 3.0f;
 	
 	// Interface for receiving data
 	public interface FragmentAddFieldListener {
 		public void FragmentAddField_Undo(); //This -> Listener
 		public void FragmentAddField_Init(); //This -> Listener
-		public void FragmentAddField_Done(Field field);  //This -> Listener
+		public void FragmentAddField_Done(FieldView field);  //This -> Listener
 	}
 
 	@Override
@@ -56,7 +65,7 @@ public class FragmentAddField extends Fragment implements OnClickListener, OnChe
 		name = (EditText) view.findViewById(R.id.add_field_name);
 		acres = (EditText) view.findViewById(R.id.add_field_etAcres);
 		autoAcres = (CheckBox) view.findViewById(R.id.add_field_chkAutoAcres);
-		
+
 		acres.setOnFocusChangeListener(new OnFocusChangeListener() {
 			@Override
 			public void onFocusChange(View v, boolean hasFocus) {
@@ -69,12 +78,11 @@ public class FragmentAddField extends Fragment implements OnClickListener, OnChe
 										acres.getText().toString().length() - 3));
 						acres.selectAll();
 
+						getActivity().getApplicationContext();
 						InputMethodManager imm = (InputMethodManager) getActivity()
 								.getApplicationContext()
-								.getSystemService(
-										getActivity().getApplicationContext().INPUT_METHOD_SERVICE);
-						imm.showSoftInput(acres,
-								InputMethodManager.SHOW_IMPLICIT);
+								.getSystemService(Context.INPUT_METHOD_SERVICE);
+						imm.showSoftInput(acres, InputMethodManager.SHOW_FORCED);
 					}
 				} else {
 					if (acres.getText().toString().contains("ac") == false) {
@@ -102,29 +110,33 @@ public class FragmentAddField extends Fragment implements OnClickListener, OnChe
 		listener.FragmentAddField_Init();
 	}
 
-	public void init(Field field) {
-		this.field = field;
-		
-		if (field != null) {
-			name.setText(field.getName());
-			String strAcres;
-			if(field.getAcres() < 3.0f){
-				DecimalFormat df = new DecimalFormat("#.#");
-				strAcres = df.format(field.getAcres());
+	public void init(FieldView fieldView) {
+		if(fieldView != null) {
+			this.fieldview = fieldView;
+			Field field = fieldView.getField();
+			
+			if (field != null && field.getId() != null && field.getId() != -1) {
+				name.setText(field.getName());
+				String strAcres;
+				if(field.getAcres() < DECIMAL_ACRES_LIMIT){
+					DecimalFormat df = new DecimalFormat("#.#");
+					strAcres = df.format(field.getAcres());
+				} else {
+					DecimalFormat df = new DecimalFormat("#");
+					strAcres = df.format(field.getAcres());
+				}
+				acres.setText(strAcres + " ac");
+				autoAcres.setChecked(false); //TODO only turn off if calculated acres != fields acres
+				acres.setEnabled(true);
 			} else {
-				DecimalFormat df = new DecimalFormat("#");
-				strAcres = df.format(field.getAcres());
+				//New field
+				name.setText("");
+				acres.setText("");
+				autoAcres.setChecked(true);
+				acres.setEnabled(false);
 			}
-			acres.setText(strAcres + " ac");
-			autoAcres.setChecked(false); //TODO only turn off if calculated acres != fields acres
-			acres.setEnabled(true);
-		} else {
-			//New field
-			this.field = new Field();
-			name.setText("");
-			acres.setText("");
-			autoAcres.setChecked(true);
-			acres.setEnabled(false);
+			
+			this.fieldview.getPolygonView().setOnDrawListener(this);
 		}
 	}
 
@@ -155,10 +167,10 @@ public class FragmentAddField extends Fragment implements OnClickListener, OnChe
 				fltAcres = Float.parseFloat(strAcres);
 			}
 			
-			this.field.setAcres(fltAcres);
-			this.field.setName(name.getText().toString());
-			
-			listener.FragmentAddField_Done(this.field);
+			this.fieldview.getField().setAcres(fltAcres);
+			this.fieldview.getField().setName(name.getText().toString());
+			fieldview.getPolygonView().setOnDrawListener(null);
+			listener.FragmentAddField_Done(this.fieldview);
 		} else if (v.getId() == R.id.add_field_undo) {
 			listener.FragmentAddField_Undo();
 		} else if (v.getId() == R.id.add_field_delete) {
@@ -170,8 +182,9 @@ public class FragmentAddField extends Fragment implements OnClickListener, OnChe
 					new DialogInterface.OnClickListener() {
 						public void onClick(DialogInterface dialog,
 								int whichButton) {
-							field.setDeleted(true);
-							listener.FragmentAddField_Done(field);
+							fieldview.getField().setDeleted(true);
+							fieldview.getPolygonView().setOnDrawListener(null);
+							listener.FragmentAddField_Done(fieldview);
 						}
 					}).setNegativeButton("No", null).show();
 		}
@@ -192,12 +205,43 @@ public class FragmentAddField extends Fragment implements OnClickListener, OnChe
 		if(buttonView.getId() == R.id.add_field_chkAutoAcres){
 			if(isChecked){
 				Log.d("FragmentAddField", "Checked");
-				int newAcres = (int) autoAcresValue;
-				this.acres.setText(Integer.toString(newAcres) + " ac");
+				this.afterBoundaryChange(this.fieldview.getPolygonView());
 				this.acres.setEnabled(false);
 			} else {
 				this.acres.setEnabled(true);
 			}
 		}
+	}
+
+	@Override
+	public boolean beforeBoundaryChange(ATKPolygonView polygonView) {
+		//If keyboard is up, dont allow the boundary to change, put down keyboard
+		if(this.keyboardShowing){
+			if(this.keyboardShowing == true) {
+				InputMethodManager inputManager = (InputMethodManager) this.getActivity().getSystemService(Context.INPUT_METHOD_SERVICE);
+			    //check if no view has focus:
+			    View v=this.getActivity().getCurrentFocus();
+			    if(v != null){
+			    	inputManager.hideSoftInputFromWindow(v.getWindowToken(), InputMethodManager.HIDE_NOT_ALWAYS);
+			    }
+			}
+			return false;
+		}
+		return true;
+	}
+
+	@Override
+	public boolean afterBoundaryChange(ATKPolygonView polygonView) {
+		autoAcresValue = polygonView.getAcres();
+		if(this.autoAcres != null && this.autoAcres.isChecked()){
+			if(this.autoAcresValue < DECIMAL_ACRES_LIMIT){
+				DecimalFormat df = new DecimalFormat("#.#");
+				String strAcres = df.format(autoAcresValue);
+				this.acres.setText(strAcres + " ac");
+			} else {
+				this.acres.setText(Integer.toString((int) this.autoAcresValue) + " ac");
+			}
+		}
+		return false;
 	}
 }

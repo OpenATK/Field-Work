@@ -17,7 +17,7 @@ public class Field {
 	private Float acres = 0.0f;
 	private Date dateAcresChanged = null;
 
-	private Boolean deleted = false;
+	private Boolean deleted = null;
 	private Date dateDeleted = null;
 	
 	private List<LatLng> boundary;
@@ -26,6 +26,20 @@ public class Field {
 	
 	public Field(){
 		
+	}
+	
+	public Field(Object makeNull){
+		if(makeNull == null){
+			this.remote_id = null;
+			this.name = null;
+			this.dateNameChanged = null;
+			this.acres = null;
+			this.dateAcresChanged = null;
+			this.deleted = null;
+			this.dateDeleted = null;
+			this.boundary = null;
+			this.dateBoundaryChanged = null;
+		}
 	}
 	
 	

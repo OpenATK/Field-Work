@@ -2,7 +2,9 @@ package com.openatk.field_work.db;
 
 import java.util.Date;
 
+import com.openatk.field_work.models.Field;
 import com.openatk.field_work.models.Job;
+import com.openatk.field_work.models.Worker;
 
 import android.content.ContentValues;
 import android.database.Cursor;
@@ -15,12 +17,9 @@ public class TableJobs {
 	public static final String COL_ID = "_id";
 	public static final String COL_REMOTE_ID = "remote_id";
 	
-	
-	
 	public static final String COL_FIELD_NAME = "field_name";
 	public static final String COL_FIELD_NAME_CHANGED = "field_name_changed";
 
-	
 	public static final String COL_OPERATION_ID = "operation_id";
 	public static final String COL_OPERATION_ID_CHANGED = "operation_id_changed";
 
@@ -128,7 +127,7 @@ public class TableJobs {
 	}
 	
 	
-	public Job FindJobByFieldName(DatabaseHelper dbHelper, String name, int idOperation) {
+	public static Job FindJobByFieldName(DatabaseHelper dbHelper, String name, int idOperation) {
 		SQLiteDatabase database = dbHelper.getReadableDatabase();
 		// Find job
 		Job theJob = null;
@@ -142,12 +141,30 @@ public class TableJobs {
 		return theJob;
 	}
 
-	public Job FindJobById(DatabaseHelper dbHelper, Integer id) {
+	public static Job FindJobById(DatabaseHelper dbHelper, Integer id) {
 		if (id != null) {
 			SQLiteDatabase database = dbHelper.getReadableDatabase();
 			// Find job
 			Job theJob = null;
 			String where = TableJobs.COL_ID + " = " + Integer.toString(id) + " AND " + TableJobs.COL_DELETED + " = 0";
+			Cursor cursor = database.query(TableJobs.TABLE_NAME, TableJobs.COLUMNS, where, null, null, null, null);
+			if (cursor.moveToFirst()) {
+				theJob = TableJobs.cursorToJob(cursor);
+			}
+			cursor.close();
+			dbHelper.close();
+			return theJob;
+		} else {
+			return null;
+		}
+	}
+	
+	public static Job FindJobByRemoteId(DatabaseHelper dbHelper, String id) {
+		if (id != null) {
+			SQLiteDatabase database = dbHelper.getReadableDatabase();
+			// Find job
+			Job theJob = null;
+			String where = TableJobs.COL_ID + " = '" + id + "'";
 			Cursor cursor = database.query(TableJobs.TABLE_NAME, TableJobs.COLUMNS, where, null, null, null, null);
 			if (cursor.moveToFirst()) {
 				theJob = TableJobs.cursorToJob(cursor);
@@ -166,7 +183,6 @@ public class TableJobs {
 		//Used by both LibTrello and MainActivity to update database data
 		
 		boolean ret = false;
-		SQLiteDatabase database = dbHelper.getWritableDatabase();
 		
 		ContentValues values = new ContentValues();
 		if(job.getRemote_id() != null) values.put(TableJobs.COL_REMOTE_ID, job.getRemote_id());
@@ -192,35 +208,76 @@ public class TableJobs {
 		if(job.getDeleted() != null) values.put(TableJobs.COL_DELETED, (job.getDeleted() == false ? 0 : 1));
 		if(job.getDateDeletedChanged() != null) values.put(TableJobs.COL_DELETED_CHANGED, DatabaseHelper.dateToStringUTC(job.getDateDeletedChanged()));
 
-		
-		if(job.getId() == null && (job.getRemote_id() == null || job.getRemote_id().length() == 0)) {
-			//INSERT This is a new worker, has no id's
-			int id = (int) database.insert(TableJobs.TABLE_NAME, null, values);
-			job.setId(id);
-			Log.d("TableJobs", "INSERT id:" + Integer.toString(id) +  " fieldname:" + job.getFieldName());
-			ret = true;
-		} else {
-			//UPDATE
-			//If have id, lookup by that, it's fastest
-			Log.d("TableJobs", "Update id:" + Integer.toString(job.getId()));
+		if(values.size() > 0){
+			SQLiteDatabase database = dbHelper.getWritableDatabase();
+			if(job.getId() == null) {
+				//INSERT This is a new worker, has no id's
+				int id = (int) database.insert(TableJobs.TABLE_NAME, null, values);
+				job.setId(id);
+				Log.d("TableJobs", "INSERT id:" + Integer.toString(id) +  " fieldname:" + job.getFieldName());
+				ret = true;
+			} else {
+				//UPDATE
+				//If have id, lookup by that, it's fastest
+				if(job.getId() != null) Log.d("TableJobs", "Update id:" + Integer.toString(job.getId()));
+				if(job.getStatus() != null) Log.d("TableJobs", "status:" + Integer.toString(job.getStatus()));
+				if(job.getDeleted() != null) Log.d("TableJobs", "deleted:" + Boolean.toString(job.getDeleted()));
+	
+				String where = TableJobs.COL_ID + " = " + Integer.toString(job.getId());
+				
+				database.update(TableJobs.TABLE_NAME, values, where, null);
+				ret = true;
+			}
 			
-			if(job.getStatus() != null) Log.d("TableJobs", "status:" + Integer.toString(job.getStatus()));
+			database.close();
+			dbHelper.close();
+		}
+		return ret;
+	}
+	public static boolean deleteJob(DatabaseHelper dbHelper, Job job){
+		//Delete job by local id or Trello id
+		//Used by MyTrelloContentProvider
+		
+		boolean ret = false;
+		SQLiteDatabase database = dbHelper.getWritableDatabase();
+		if(job.getId() == null && (job.getRemote_id() == null || job.getRemote_id().length() == 0)) {
+			//Can't delete without an id
+			ret = false;
+		} else {
+			//DELETE
+			//If have id, lookup by that, it's fastest
 			String where;
 			if(job.getId() != null){
 				where = TableJobs.COL_ID + " = " + Integer.toString(job.getId());
 			} else {
 				where = TableJobs.COL_REMOTE_ID + " = '" + job.getRemote_id() + "'";
 			}
-			database.update(TableJobs.TABLE_NAME, values, where, null);
+			database.delete(TableJobs.TABLE_NAME, where, null);
 			ret = true;
 		}
-		
 		database.close();
 		dbHelper.close();
 		return ret;
 	}
-	
-	
-	
+	public static boolean deleteAll(DatabaseHelper dbHelper){
+		//Deleted all jobs in the db
+		//Used by MyTrelloContentProvider
+		
+		SQLiteDatabase database = dbHelper.getWritableDatabase();
+		database.delete(TableJobs.TABLE_NAME, null, null);
+		database.close();
+		dbHelper.close();
+		return true;
+	}
+	public static boolean deleteAllWithOperationId(DatabaseHelper dbHelper, Integer operationId){
+		//Deleted all jobs in the db
+		//Used by MyTrelloContentProvider
+		String where = TableJobs.COL_OPERATION_ID + " = " + Integer.toString(operationId);
+		SQLiteDatabase database = dbHelper.getWritableDatabase();
+		database.delete(TableJobs.TABLE_NAME, where, null);
+		database.close();
+		dbHelper.close();
+		return true;
+	}
 	
 }

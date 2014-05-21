@@ -11,6 +11,12 @@
         android:showAsAction="always"
         android:icon="@drawable/locate"
         android:title="Current Location"/>
+    <item 
+        android:id="@+id/main_menu_sync"
+        android:showAsAction="always" 
+	    android:icon="@drawable/refresh"
+        android:title="Sync"
+        android:visible="true" />
     <item
         android:id="@+id/main_menu_layers"
         android:orderInCategory="100"

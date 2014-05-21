@@ -99,6 +99,7 @@ public class TableFields {
 	}
 	
 	public static List<LatLng> StringToBoundary(String boundary){
+		if(boundary == null) return new ArrayList<LatLng>();
 		StringTokenizer tokens = new StringTokenizer(boundary, ",");
 		List<LatLng> points = new ArrayList<LatLng>();
 		while (tokens.countTokens() > 1) {
@@ -169,6 +170,26 @@ public class TableFields {
 		}
 	}
 	
+	public static Field FindFieldByRemoteId(DatabaseHelper dbHelper, String remoteId) {
+		if(dbHelper == null) return null;
+
+		if (remoteId != null) {
+			SQLiteDatabase database = dbHelper.getReadableDatabase();
+			// Find current field
+			Field theField = null;
+			String where = TableFields.COL_REMOTE_ID + " = '" + remoteId + "'";
+			Cursor cursor = database.query(TableFields.TABLE_NAME,TableFields.COLUMNS, where, null, null, null, null);
+			if (cursor.moveToFirst()) {
+				theField = TableFields.cursorToField(cursor);
+			}
+			cursor.close();
+			database.close();
+			dbHelper.close();
+			return theField;
+		} else {
+			return null;
+		}
+	}
 	
 	public static boolean updateField(DatabaseHelper dbHelper, Field field){
 		//Inserts, updates
@@ -176,13 +197,13 @@ public class TableFields {
 		//Used by both LibTrello and MainActivity to update database data
 		
 		boolean ret = false;
-		SQLiteDatabase database = dbHelper.getWritableDatabase();
 		
 		ContentValues values = new ContentValues();
 		if(field.getRemote_id() != null) values.put(TableFields.COL_REMOTE_ID, field.getRemote_id());
 		
 		if(field.getDateNameChanged() != null) values.put(TableFields.COL_NAME_CHANGED, DatabaseHelper.dateToStringUTC(field.getDateNameChanged()));
 		if(field.getName() != null) values.put(TableFields.COL_NAME, field.getName());
+		Log.d("TableFields - updateField", "FieldName:" + field.getName());
 		
 		if(field.getAcres() != null) values.put(TableFields.COL_ACRES, field.getAcres());
 		if(field.getDateAcresChanged() != null) values.put(TableFields.COL_ACRES_CHANGED, DatabaseHelper.dateToStringUTC(field.getDateAcresChanged()));
@@ -192,14 +213,56 @@ public class TableFields {
 		if(field.getDateBoundaryChanged() != null) values.put(TableFields.COL_BOUNDARY_CHANGED, DatabaseHelper.dateToStringUTC(field.getDateBoundaryChanged()));
 
 		if(field.getDeleted() != null) values.put(TableFields.COL_DELETED, (field.getDeleted() == false ? 0 : 1));
-		if(field.getDateDeleted() != null) values.put(TableFields.COL_DELETED_CHANGED, DatabaseHelper.dateToStringUTC(field.getDateNameChanged()));
+		if(field.getDateDeleted() != null) values.put(TableFields.COL_DELETED_CHANGED, DatabaseHelper.dateToStringUTC(field.getDateDeleted()));
 
+		if(values.size() > 0){
+			SQLiteDatabase database = dbHelper.getWritableDatabase();
+			if(field.getId() == null) {
+				//INSERT This is a new worker, has no id's
+				int id = (int) database.insert(TableFields.TABLE_NAME, null, values);
+				field.setId(id);
+				ret = true;
+			} else {
+				//UPDATE
+				String where = TableFields.COL_ID + " = " + Integer.toString(field.getId());
+				database.update(TableFields.TABLE_NAME, values, where, null);
+				ret = true;
+			}
+			
+			database.close();
+			dbHelper.close();
+		}
+		return ret;
+	}
+	public static boolean deleteFieldIfNotSynced(DatabaseHelper dbHelper, Field field){
+		//Delete field by local id if it has a remote id, ie. has been synced to cloud
+		//Used by MainActivity
+		boolean ret = false;
+		SQLiteDatabase database = dbHelper.getWritableDatabase();
+		if(field.getId() == null) {
+			//Can't delete without an id
+			Log.w("deleteFieldIfNotSynced", "Field has no id cant delete");
+			ret = false;
+		} else {
+			//If have id, lookup by that, it's fastest
+			String where = TableFields.COL_ID + " = " + Integer.toString(field.getId()) + " AND " + TableFields.COL_REMOTE_ID + " = ''";
+			if(database.delete(TableFields.TABLE_NAME, where, null) > 0){
+				ret = true;
+			}
+		}
+		database.close();
+		dbHelper.close();
+		return ret;
+	}
+	public static boolean deleteField(DatabaseHelper dbHelper, Field field){
+		//Deleted field by local id or Trello id
+		//Used by MyTrelloContentProvider
 		
+		boolean ret = false;
+		SQLiteDatabase database = dbHelper.getWritableDatabase();
 		if(field.getId() == null && (field.getRemote_id() == null || field.getRemote_id().length() == 0)) {
-			//INSERT This is a new worker, has no id's
-			int id = (int) database.insert(TableFields.TABLE_NAME, null, values);
-			field.setId(id);
-			ret = true;
+			//Can't delete without an id
+			ret = false;
 		} else {
 			//UPDATE
 			//If have id, lookup by that, it's fastest
@@ -209,13 +272,21 @@ public class TableFields {
 			} else {
 				where = TableFields.COL_REMOTE_ID + " = '" + field.getRemote_id() + "'";
 			}
-			database.update(TableFields.TABLE_NAME, values, where, null);
+			database.delete(TableFields.TABLE_NAME, where, null);
 			ret = true;
 		}
-		
 		database.close();
 		dbHelper.close();
 		return ret;
 	}
-	
+	public static boolean deleteAll(DatabaseHelper dbHelper){
+		//Deleted all fields in the db
+		//Used by MyTrelloContentProvider
+		
+		SQLiteDatabase database = dbHelper.getWritableDatabase();
+		database.delete(TableFields.TABLE_NAME, null, null);
+		database.close();
+		dbHelper.close();
+		return true;
+	}
 }

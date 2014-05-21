@@ -45,6 +45,26 @@ public class Job {
 		this.fieldName = null;
 	}
 	
+	public Job(Object makeNull){
+		if(makeNull == null){
+			this.remote_id = null;
+			this.fieldName = null;
+			this.dateFieldNameChanged = null;
+			this.operationId = null;
+			this.dateOperationIdChanged = null;
+			this.dateOfOperation = null;
+			this.dateDateOfOperationChanged = null;
+			this.workerName = null;
+			this.dateWorkerNameChanged = null;			
+			this.status = null;
+			this.dateStatusChanged = null;
+			this.comments = null;
+			this.dateCommentsChanged = null;
+			this.deleted = null;
+			this.dateDeletedChanged = null;
+		}
+	}
+	
 	public Job(int operationId, String fieldName){
 		//Used for creating a new job locally
 		this.status = STATUS_NOT_PLANNED;

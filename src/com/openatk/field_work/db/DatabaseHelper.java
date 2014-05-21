@@ -7,8 +7,10 @@ import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 import java.util.TimeZone;
+
 import com.openatk.field_work.models.Field;
 import com.openatk.field_work.models.Job;
+import com.openatk.field_work.models.Operation;
 import com.openatk.field_work.models.Worker;
 
 import android.content.ContentValues;
@@ -140,6 +142,23 @@ public class DatabaseHelper extends SQLiteOpenHelper {
 		dbHelper.close();
 		return jobs;
 	}
+	public List<Job> readJobsByOperationId(int operationId){
+		return DatabaseHelper.readJobsByOperationId(this, operationId);
+	}
+	public static List<Job> readJobsByOperationId(DatabaseHelper dbHelper, int operationId){
+		List<Job> jobs = new ArrayList<Job>();
+		SQLiteDatabase database = dbHelper.getReadableDatabase();
+		String where = TableJobs.COL_OPERATION_ID + " = " + Integer.toString(operationId);
+		Cursor cursor = database.query(TableJobs.TABLE_NAME, TableJobs.COLUMNS, where, null, null, null, null);
+		while (cursor.moveToNext()) {
+			jobs.add(TableJobs.cursorToJob(cursor));
+		}
+		cursor.close();
+		
+		database.close();
+		dbHelper.close();
+		return jobs;
+	}
 
 	public List<Worker> readWorkers(){
 		return DatabaseHelper.readWorkers(this);
@@ -162,6 +181,25 @@ public class DatabaseHelper extends SQLiteOpenHelper {
 	
 	public boolean updateWorker(Worker worker){
 		return TableWorkers.updateWorker(this, worker);
+	}
+	
+	
+	public List<Operation> readOperations(){
+		return DatabaseHelper.readOperations(this);
+	}
+	public static List<Operation> readOperations(DatabaseHelper dbHelper){
+		List<Operation> operations = new ArrayList<Operation>();
+		SQLiteDatabase database = dbHelper.getReadableDatabase();
+
+		Cursor cursor = database.query(TableOperations.TABLE_NAME, TableOperations.COLUMNS, null, null, null, null, null);
+		while (cursor.moveToNext()) {
+			operations.add(TableOperations.cursorToOperation(cursor));
+		}
+		cursor.close();
+		
+		database.close();
+		dbHelper.close();
+		return operations;
 	}
 	
 	

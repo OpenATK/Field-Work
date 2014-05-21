@@ -70,15 +70,23 @@ public class FieldView {
 		return this.field;
 	}
 	
+	public void setField(Field field){
+		this.field = field;
+	}
+	
 	public Job getJob(){
 		return this.job;
+	}
+	
+	public ATKPolygonView getPolygonView(){
+		return this.polygonView;
 	}
 	
 	public void setState(int newState){
 		setState(newState, false);
 	}
 	public void setState(int newState, boolean force){
-		if(this.state != newState){
+		if(this.state != newState || force){
 			if(this.state == FieldView.STATE_EDITING && newState != FieldView.STATE_EDITING){
 				//Stop drawing polygonView
 				map.completePolygon();
@@ -105,70 +113,73 @@ public class FieldView {
 	}
 	public void update(Field newField, Job newJob, boolean force){
 		//Compares data and updates map accordingly or adds to map if doesn't exist
-		if(newField.getDeleted()){
-			//Remove the field from the map and we are done
-			Log.d("FieldView update", "update deleted");
-			if(polygonView != null) polygonView.remove();
-			return;
-		}
-		
-		if(polygonView == null){
-			Log.d("FieldView update", "Add polygon to map");
-			ATKPolygon atkPoly = new ATKPolygon(newField.getId(), newField.getBoundary(), newField.getName());
-			//This adds the polygon to the map so it should be visible after this
-			polygonView = map.addPolygon(atkPoly);
-			polygonView.setData(this);
-			this.polygonView.setLabelSelectedColor(FieldView.LABEL_COLOR_NORMAL);
-			this.polygonView.setLabelSelectedColor(FieldView.LABEL_COLOR_SELECTED);
-		}
-		
-		//Check all visual aspects of FieldView for changes
-		
-		//Field related visual aspects of polygonView
-		if(polygonView.getAtkPolygon().boundary.equals(newField.getBoundary()) == false){
-			//Update polygonView boundary
-			Log.d("FieldView update", "Update boundary");
-			polygonView.getAtkPolygon().boundary = newField.getBoundary();
-		}
-		
-		if(polygonView.getAtkPolygon().label.contentEquals(newField.getName()) == false){
-			//Update polygonView label
-			Log.d("FieldView update", "Update name");
-			polygonView.setLabel(newField.getName());
-		}
-				
-		
-		//Job related visual aspects of polygonView
-		if(newJob == null){
-			//Update polygon fillcolor
-			Log.d("FieldView update", "Update fillcolor, no job");
-
-			polygonView.setFillColor(FieldView.FILL_COLOR_NOT_PLANNED);
-		} else {
-		
-			if(newJob.getDeleted()){
-				Log.d("FieldView update", "Update fillcolor deleted");
-				//Update polygonView fillcolor
-				polygonView.setFillColor(FieldView.FILL_COLOR_NOT_PLANNED);
+		if(newField.getId() != -1){
+			if(newField.getDeleted()){
+				//Remove the field from the map and we are done
+				Log.d("FieldView update", "update deleted");
+				if(polygonView != null) map.removePolygon(polygonView.getAtkPolygon());
+				return;
 			}
-						
-			if(newJob.getDeleted() == false){
-				//Update polygonView fillcolor
-				Log.d("FieldView update", "Update fillcolor");
-				if(newJob.getStatus() == Job.STATUS_NOT_PLANNED){
+			
+			if(polygonView == null){
+				Log.d("FieldView update", "Add polygon to map");
+				ATKPolygon atkPoly = new ATKPolygon(newField.getId(), newField.getBoundary(), newField.getName());
+				//This adds the polygon to the map so it should be visible after this
+				polygonView = map.addPolygon(atkPoly);
+				polygonView.setData(this);
+				polygonView.setLabelColor(FieldView.LABEL_COLOR_NORMAL);
+				polygonView.setLabelSelectedColor(FieldView.LABEL_COLOR_SELECTED);
+				setState(this.state, true);
+			}
+			
+			//Check all visual aspects of FieldView for changes
+			
+			//Field related visual aspects of polygonView
+			if(polygonView.getAtkPolygon().boundary.equals(newField.getBoundary()) == false){
+				//Update polygonView boundary
+				Log.d("FieldView update", "Update boundary");
+				polygonView.getAtkPolygon().boundary = newField.getBoundary();
+			}
+			
+			if(polygonView.getAtkPolygon().label.contentEquals(newField.getName()) == false){
+				//Update polygonView label
+				Log.d("FieldView update", "Update name");
+				polygonView.setLabel(newField.getName());
+			}
+					
+
+			
+			//Job related visual aspects of polygonView
+			if(newJob == null){
+				//Update polygon fillcolor
+				Log.d("FieldView update", "Update fillcolor, no job");
+	
+				polygonView.setFillColor(FieldView.FILL_COLOR_NOT_PLANNED);
+			} else {
+			
+				if(newJob.getDeleted()){
+					Log.d("FieldView update", "Update fillcolor deleted");
+					//Update polygonView fillcolor
 					polygonView.setFillColor(FieldView.FILL_COLOR_NOT_PLANNED);
-				} else if (newJob.getStatus() == Job.STATUS_PLANNED){
-					polygonView.setFillColor(FieldView.FILL_COLOR_PLANNED);
-				} else if (newJob.getStatus() == Job.STATUS_STARTED){
-					polygonView.setFillColor(FieldView.FILL_COLOR_STARTED);
-				} else if (newJob.getStatus() == Job.STATUS_DONE){
-					polygonView.setFillColor(FieldView.FILL_COLOR_DONE);
+				}
+							
+				if(newJob.getDeleted() == false){
+					//Update polygonView fillcolor
+					Log.d("FieldView update", "Update fillcolor");
+					if(newJob.getStatus() == Job.STATUS_NOT_PLANNED){
+						polygonView.setFillColor(FieldView.FILL_COLOR_NOT_PLANNED);
+					} else if (newJob.getStatus() == Job.STATUS_PLANNED){
+						polygonView.setFillColor(FieldView.FILL_COLOR_PLANNED);
+					} else if (newJob.getStatus() == Job.STATUS_STARTED){
+						polygonView.setFillColor(FieldView.FILL_COLOR_STARTED);
+					} else if (newJob.getStatus() == Job.STATUS_DONE){
+						polygonView.setFillColor(FieldView.FILL_COLOR_DONE);
+					}
 				}
 			}
+			
+			polygonView.update();
 		}
-		
-		polygonView.update();
-				
 		//Done so update references
 		field = newField;
 		job = newJob;

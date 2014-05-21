@@ -8,12 +8,16 @@ public class Operation {
 	private String name = "";
 	private Date dateNameChanged = null;
 	
-	private Boolean deleted = false;
+	private Boolean deleted = null;
 	private Date dateDeletedChanged = null;
 	
 	
 	public Operation(){
-		
+		this.remote_id = null;
+		this.name = null;
+		this.dateNameChanged = null;
+		this.deleted = null;
+		this.dateDeletedChanged = null;
 	}
 	
 	public Operation(String name) {

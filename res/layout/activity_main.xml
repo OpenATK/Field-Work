@@ -1,5 +1,6 @@
-<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<com.openatk.field_work.views.RelativeLayoutKeyboardDetect xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/mainActivity"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
@@ -31,4 +32,4 @@
 	    android:layout_alignParentBottom="true"
 	     />
 	
-</RelativeLayout>
+</com.openatk.field_work.views.RelativeLayoutKeyboardDetect>

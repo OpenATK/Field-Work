@@ -2,6 +2,7 @@ package com.openatk.field_work.db;
 
 import java.util.Date;
 
+import com.openatk.field_work.models.Job;
 import com.openatk.field_work.models.Operation;
 
 import android.content.ContentValues;
@@ -68,13 +69,17 @@ public class TableOperations {
 	}
 	
 	public static Operation FindOperationById(DatabaseHelper dbHelper, Integer id) {
+		return TableOperations.FindOperationById(dbHelper, id, true);
+	}
+	public static Operation FindOperationById(DatabaseHelper dbHelper, Integer id, Boolean notDeleted) {
 		if(dbHelper == null) return null;
 
 		if (id != null) {
 			SQLiteDatabase database = dbHelper.getReadableDatabase();
 			// Find current field
 			Operation item = null;
-			String where = TableOperations.COL_ID + " = " + Integer.toString(id) + " AND " + TableOperations.COL_DELETED + " = 0";
+			String where = TableOperations.COL_ID + " = " + Integer.toString(id);
+			if(notDeleted) where = where + " AND " + TableOperations.COL_DELETED + " = 0";
 			Cursor cursor = database.query(TableOperations.TABLE_NAME, TableOperations.COLUMNS, where, null, null, null, null);
 			if (cursor.moveToFirst()) {
 				item = TableOperations.cursorToOperation(cursor);
@@ -88,52 +93,100 @@ public class TableOperations {
 		}
 	}
 	
-	
-	
-	
-	
-	public static void updateOperation(DatabaseHelper dbHelper, Operation operation){
-		TableOperations.updateOperation(dbHelper, operation, false);
-	}
-	public static boolean updateOperation(DatabaseHelper dbHelper, Operation operation, Boolean notify){
-		//Add/update operation
-		Operation oldOperation = null;
-		if(operation.getId() == null){
-			//New operation
-			oldOperation = TableOperations.FindOperationById(dbHelper, operation.getId());
-		}
+	public static Operation FindOperationByTrelloId(DatabaseHelper dbHelper, String id) {
+		if(dbHelper == null) return null;
 
-		
-		Boolean updated = false;
-		ContentValues values = new ContentValues();
-		if(operation.getName() != null && (oldOperation == null || oldOperation.getName().contentEquals(operation.getName()) == false)){
-			updated = true;
-			values.put(TableOperations.COL_NAME, operation.getName());
-			values.put(TableOperations.COL_NAME_CHANGED, DatabaseHelper.dateToStringUTC(new Date()));
-		}
-		if(operation.getDeleted() != null && (oldOperation == null || oldOperation.getDeleted() != operation.getDeleted())){
-			updated = true;
-			values.put(TableOperations.COL_DELETED, operation.getDeleted());
-			values.put(TableOperations.COL_DELETED_CHANGED, DatabaseHelper.dateToStringUTC(new Date()));
-		}
-		
-		if(updated){
-			SQLiteDatabase database = dbHelper.getWritableDatabase();
-			if(oldOperation == null) {
-				//Insert
-				Integer insertId = (int) database.insert(TableOperations.TABLE_NAME, null, values);
-				operation.setId(insertId); 
-			} else {
-				database.update(TableOperations.TABLE_NAME, values, TableOperations.COL_ID + " = " + Integer.toString(operation.getId()), null);
+		if (id != null) {
+			SQLiteDatabase database = dbHelper.getReadableDatabase();
+			// Find current field
+			Operation item = null;
+			String where = TableOperations.COL_REMOTE_ID + " = '" + id + "'";
+			Cursor cursor = database.query(TableOperations.TABLE_NAME, TableOperations.COLUMNS, where, null, null, null, null);
+			if (cursor.moveToFirst()) {
+				item = TableOperations.cursorToOperation(cursor);
 			}
+			cursor.close();
 			database.close();
 			dbHelper.close();
-			
-			if(notify){
-				//Send broadcast of this change
-				//TODO
-			}
+			return item;
+		} else {
+			return null;
 		}
-		return updated;
+	}
+	
+	public static boolean updateOperation(DatabaseHelper dbHelper, Operation operation){
+		//Inserts, updates
+		//Only non-null fields are updated
+		//Used by both MyTrelloContentProvider and MainActivity to update database data
+		
+		boolean ret = false;
+		
+		ContentValues values = new ContentValues();
+		if(operation.getRemote_id() != null) values.put(TableOperations.COL_REMOTE_ID, operation.getRemote_id());
+		
+		if(operation.getName() != null) values.put(TableOperations.COL_NAME, operation.getName());
+		if(operation.getDateNameChanged() != null) values.put(TableOperations.COL_NAME_CHANGED, DatabaseHelper.dateToStringUTC(operation.getDateNameChanged()));
+		
+		if(operation.getDeleted() != null) values.put(TableOperations.COL_DELETED, (operation.getDeleted() == false ? 0 : 1));
+		if(operation.getDateDeletedChanged() != null) values.put(TableOperations.COL_DELETED_CHANGED, DatabaseHelper.dateToStringUTC(operation.getDateDeletedChanged()));
+		
+		if(values.size() > 0){
+			SQLiteDatabase database = dbHelper.getWritableDatabase();
+			if(operation.getId() == null) {
+				//INSERT This is a new worker has no id
+				int id = (int) database.insert(TableOperations.TABLE_NAME, null, values);
+				operation.setId(id);
+				Log.d("TableOperations", "INSERT id:" + Integer.toString(id) +  " name:" + operation.getName());
+				ret = true;
+			} else {
+				//UPDATE
+				//If have id, lookup by that, it's fastest
+				if(operation.getId() != null) Log.d("TableOperations", "Update id:" + Integer.toString(operation.getId()));
+				if(operation.getRemote_id() != null) Log.d("TableOperations", "Update trello id:" + operation.getRemote_id());
+	
+				String where = TableOperations.COL_ID + " = " + Integer.toString(operation.getId());
+				database.update(TableOperations.TABLE_NAME, values, where, null);
+				ret = true;
+			}
+			
+			database.close();
+			dbHelper.close();
+		}
+		return ret;
+	}
+	public static boolean deleteOperation(DatabaseHelper dbHelper, Operation operation){
+		//Delete job by local id or Trello id
+		//Used by MyTrelloContentProvider
+		
+		boolean ret = false;
+		SQLiteDatabase database = dbHelper.getWritableDatabase();
+		if(operation.getId() == null && (operation.getRemote_id() == null || operation.getRemote_id().length() == 0)) {
+			//Can't delete without an id
+			ret = false;
+		} else {
+			//DELETE
+			//If have id, lookup by that, it's fastest
+			String where;
+			if(operation.getId() != null){
+				where = TableOperations.COL_ID + " = " + Integer.toString(operation.getId());
+			} else {
+				where = TableOperations.COL_REMOTE_ID + " = '" + operation.getRemote_id() + "'";
+			}
+			database.delete(TableOperations.TABLE_NAME, where, null);
+			ret = true;
+		}
+		database.close();
+		dbHelper.close();
+		return ret;
+	}
+	public static boolean deleteAll(DatabaseHelper dbHelper){
+		//Deleted all operations in the db
+		//Used by MyTrelloContentProvider
+		
+		SQLiteDatabase database = dbHelper.getWritableDatabase();
+		database.delete(TableOperations.TABLE_NAME, null, null);
+		database.close();
+		dbHelper.close();
+		return true;
 	}
 }
