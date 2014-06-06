@@ -13,6 +13,7 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.View.OnClickListener;
+import android.view.inputmethod.InputMethodManager;
 import android.view.ViewGroup;
 import android.widget.ImageButton;
 import android.widget.ImageView;
@@ -42,6 +43,11 @@ public class FragmentListView extends Fragment implements OnClickListener {
 	private View viewStarted;
 	private View viewDone;
 	private View viewNotPlanned;
+	
+	private View viewScrollView;
+	private View viewTopbar;
+	private View viewLayout;
+
 
 	FragmentJob fragmentEditField = null;
 	
@@ -61,8 +67,17 @@ public class FragmentListView extends Fragment implements OnClickListener {
 
 		tvTitle1 = (TextView) view.findViewById(R.id.list_view_tvTitle1);
 		tvTitle2 = (TextView) view.findViewById(R.id.list_view_tvTitle2);
-		categoriesLinearLayout = (LinearLayout) view
-				.findViewById(R.id.list_view_categories);
+		categoriesLinearLayout = (LinearLayout) view.findViewById(R.id.list_view_categories);
+		viewScrollView = (View) view.findViewById(R.id.list_view_scrollview);
+		viewTopbar = (View) view.findViewById(R.id.list_view_topbar);
+		viewLayout = (View) view.findViewById(R.id.list_view_layout);
+
+		categoriesLinearLayout.setOnClickListener(this);
+		viewScrollView.setOnClickListener(this);
+		viewTopbar.setOnClickListener(this);
+		viewLayout.setOnClickListener(this);
+
+		
 		dbHelper = new DatabaseHelper(this.getActivity()
 				.getApplicationContext());
 
@@ -74,6 +89,12 @@ public class FragmentListView extends Fragment implements OnClickListener {
 		viewDone = vi.inflate(R.layout.list_view_category, null);
 		viewNotPlanned = vi.inflate(R.layout.list_view_category, null);
 
+		
+		viewPlanned.setOnClickListener(this);
+		viewStarted.setOnClickListener(this);
+		viewDone.setOnClickListener(this);
+		viewNotPlanned.setOnClickListener(this);
+		
 		return view;
 	}
 
@@ -353,7 +374,14 @@ public class FragmentListView extends Fragment implements OnClickListener {
 	public void onClick(View v) {
 		if (v.getId() == R.id.list_view_job_full) {
 			Job currentJob = (Job) v.getTag();
+			selectJob(currentJob.getFieldName());
 			listener.ListViewOnClick(currentJob);
+			this.viewLayout.requestFocus();
+		} else {
+			selectJob(null);
+			listener.ListViewOnClick(null);
+			closeKeyboard();
+			this.viewLayout.requestFocus();
 		}
 	}
 	
@@ -374,5 +402,14 @@ public class FragmentListView extends Fragment implements OnClickListener {
 		RelativeLayout topbar;
 		RelativeLayout content;
 		String fieldName;
+	}
+	
+	private void closeKeyboard(){
+		InputMethodManager inputManager = (InputMethodManager) this.getActivity().getSystemService(Context.INPUT_METHOD_SERVICE);
+	    //check if no view has focus:
+	    View v=this.getActivity().getCurrentFocus();
+	    if(v != null){
+	    	inputManager.hideSoftInputFromWindow(v.getWindowToken(), InputMethodManager.HIDE_NOT_ALWAYS);
+	    }
 	}
 }

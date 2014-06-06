@@ -54,7 +54,7 @@ public class TrelloHelper {
 		List<LatLng> points = field.getBoundary();
 		if(points != null){
 			desc = desc + "\nBoundary: ";
-			for(int i=0; i<(points.size()-1); i++){
+			for(int i=0; i<points.size(); i++){
 				desc = desc + "(" + Double.toString(points.get(i).latitude) + "," + Double.toString(points.get(i).longitude) + "),";
 			}
 			desc = desc.substring(0, (desc.length()-1));
@@ -65,7 +65,7 @@ public class TrelloHelper {
 		Log.d("tocard","TOCard aname:" + field.getName());
 		if(field.getDeleted() != null) Log.d("tocard","TOCard deleted:" + Boolean.toString(field.getDeleted()));
 
-		if(field.getDateAcresChanged().after(field.getDateBoundaryChanged())){
+		if(field.getDateAcresChanged() != null && field.getDateBoundaryChanged() != null && field.getDateAcresChanged().after(field.getDateBoundaryChanged())){
 			card.setDesc_changed(field.getDateAcresChanged());
 		} else {
 			card.setDesc_changed(field.getDateBoundaryChanged());
@@ -113,6 +113,10 @@ public class TrelloHelper {
 		//Generate name
 		SimpleDateFormat dateFormaterLocal = new SimpleDateFormat("MM/dd/yy", Locale.US);
 		dateFormaterLocal.setTimeZone(TimeZone.getDefault());
+		if(job.getDateOfOperation() == null){
+			job.setDateOfOperation(new Date(0));
+			Log.w("TrelloHelper - toTrelloCard", "This happens after initial sync, our job doesn't have an operation date. Fix update job status on first sync to fix this.");
+		}
 		String displayDate = dateFormaterLocal.format(job.getDateOfOperation());
 		
 		//TODO change this with labels
@@ -132,9 +136,11 @@ public class TrelloHelper {
 		card.setName(name);
 		//Name changed, latest of status, field name, and date of operation
 		Date latest = job.getDateStatusChanged();
-		if(latest.before(job.getDateDateOfOperationChanged())) latest = job.getDateDateOfOperationChanged();
-		if(latest.before(job.getDateFieldNameChanged())) latest = job.getDateFieldNameChanged();
-		if(latest.before(job.getDateWorkerNameChanged())) latest = job.getDateWorkerNameChanged();
+		if(latest == null || (job.getDateDateOfOperationChanged() != null && latest.before(job.getDateDateOfOperationChanged()))) latest = job.getDateDateOfOperationChanged();
+		if(latest == null || (job.getDateFieldNameChanged() != null &&latest.before(job.getDateFieldNameChanged()))) latest = job.getDateFieldNameChanged();
+		if(latest == null || (job.getDateWorkerNameChanged() != null &&latest.before(job.getDateWorkerNameChanged()))) latest = job.getDateWorkerNameChanged();
+		
+		if(latest == null) latest = new Date(0);
 		card.setName_changed(latest);
 
 		//Generate description
@@ -185,7 +191,7 @@ public class TrelloHelper {
 		//Parse area and boundary from desc
 		if(tcard.getDesc() != null){
 			Float acres = 0.0f;
-			Pattern p = Pattern.compile("Area:[ ]?([0-9]+[.]?[0-9]*) ac;");
+			Pattern p = Pattern.compile("(?s)Area:[ ]?([0-9]+[.]?[0-9]*) ac;");
 			Matcher m = p.matcher(tcard.getDesc());
 			if(m.find()){
 				acres = Float.parseFloat(m.group(1));
@@ -197,7 +203,7 @@ public class TrelloHelper {
 			field.setDateAcresChanged(tcard.getDesc_changed());
 			
 			List<LatLng> boundary = new ArrayList<LatLng>();
-			Pattern p2 = Pattern.compile("Boundary:[ ]?(.*);");
+			Pattern p2 = Pattern.compile("(?s)Boundary:[ ]?(.*);");
 			Matcher m2 = p2.matcher(tcard.getDesc());
 			if(m2.find()){
 				Log.d("MyTrelloContentProvider", "TrelloHelper - Found boundary");
@@ -312,13 +318,13 @@ public class TrelloHelper {
 		
 		if(tcard.getDesc() != null){
 			//Try to parse comments from desc
-			Pattern p2 = Pattern.compile("Comments:[ ]?(.*);");
+			Pattern p2 = Pattern.compile("(?s)Comments:[ ]?(.*);");
 			Matcher m2 = p2.matcher(tcard.getDesc());
 			if(m2.find()){						
 				job.setComments(m2.group(1));	
 				job.setDateCommentsChanged(tcard.getDesc_changed());
 			} else {
-				Log.w("TrelloHelper", "Cant convert card desc to job comments.");
+				Log.w("TrelloHelper", "Cant convert card desc to job comments. Desc:" + tcard.getDesc());
 				return null; //Failed to convert to valid job
 			}
 		}

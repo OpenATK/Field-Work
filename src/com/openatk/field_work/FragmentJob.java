@@ -99,7 +99,7 @@ public class FragmentJob extends Fragment implements
 		public void FragmentJob_Init(); //This -> Listener
 		public void FragmentJob_EditField(); //This -> Listener
 		public void FragmentJob_UpdateJob(Job job); //This -> Listener
-		public void FragmentJob_UpdateWorker(Worker worker); //This -> Listener
+		public void FragmentJob_TriggerSync(); //This -> Listener
 	}
 	
 	@Override
@@ -266,7 +266,7 @@ public class FragmentJob extends Fragment implements
 				}
 			}
 			
-			if(currentJob == null || currentJob.getComments().contentEquals(job.getComments()) == false){
+			if(currentJob == null || (currentJob.getComments() != null && job.getComments() != null && currentJob.getComments().contentEquals(job.getComments()) == false)){
 				etComment.removeTextChangedListener(etCommentTextWatcher);
 				etComment.setText(job.getComments());
 				etComment.addTextChangedListener(etCommentTextWatcher);
@@ -500,6 +500,7 @@ public class FragmentJob extends Fragment implements
 				toUpdate.setComments(currentJob.getComments());
 				toUpdate.setDateCommentsChanged(new Date());
 				TableJobs.updateJob(dbHelper, toUpdate);
+				listener.FragmentJob_TriggerSync();
 			}
 		}
 	}
@@ -595,7 +596,7 @@ public class FragmentJob extends Fragment implements
 									//Save in database and get id
 									TableWorkers.updateWorker(dbHelper, newWorker);
 									//Tell mainactivity to trigger a remote sync
-									listener.FragmentJob_UpdateWorker(newWorker);
+									listener.FragmentJob_TriggerSync();
 									loadWorkerList();
 									selectWorkerInSpinner(name);									
 								}
@@ -768,6 +769,7 @@ public class FragmentJob extends Fragment implements
 				toUpdate.setDateWorkerNameChanged(new Date());
 				toUpdate.setWorkerName(currentJob.getWorkerName());
 				TableJobs.updateJob(dbHelper, toUpdate);
+				listener.FragmentJob_TriggerSync();
 			}
 			
 			// Save this choice in preferences for next open
@@ -792,10 +794,13 @@ public class FragmentJob extends Fragment implements
 	}
 	
 	private void closeKeyboard(){
-		InputMethodManager imm =  (InputMethodManager)getActivity().getApplicationContext().getSystemService(Context.INPUT_METHOD_SERVICE);
-        imm.hideSoftInputFromWindow(this.etComment.getWindowToken(), 0);
+		InputMethodManager inputManager = (InputMethodManager) this.getActivity().getSystemService(Context.INPUT_METHOD_SERVICE);
+	    //check if no view has focus:
+	    View v=this.getActivity().getCurrentFocus();
+	    if(v != null){
+	    	inputManager.hideSoftInputFromWindow(v.getWindowToken(), InputMethodManager.HIDE_NOT_ALWAYS);
+	    }
 	}
-
 
 	
 }

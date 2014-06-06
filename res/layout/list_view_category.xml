@@ -3,8 +3,7 @@
     android:layout_height="wrap_content"
     android:paddingBottom="10dp"
     android:clickable="true"
-    android:focusable="true"
-    android:focusableInTouchMode="true">
+    android:focusable="true">
     <RelativeLayout
 	    android:id="@+id/list_view_category_all"
     	android:layout_width="match_parent"

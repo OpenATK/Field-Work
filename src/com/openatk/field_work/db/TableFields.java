@@ -53,19 +53,61 @@ public class TableFields {
 	      + COL_DELETED_CHANGED + " text"
 	      + ");";
 
+	private static final String DB_UPGRADE_v3_1 = "create table backup(_id, remote_id, name, acres, boundary);"
+			+ "insert into backup select _id, remote_id, name, acres, boundary from fields;"
+			+ "drop table fields;"
+			+ DATABASE_CREATE
+			+ "insert into " + TABLE_NAME + " select, remote_id, name, acres, boundary from backup;"
+			+ "drop table backup;";
+	
 	public static void onCreate(SQLiteDatabase database) {
-	  database.execSQL(DATABASE_CREATE);
+		database.execSQL(DATABASE_CREATE);
 	}
 	
 	//TODO handle upgrade
 	public static void onUpgrade(SQLiteDatabase database, int oldVersion, int newVersion) {
 		Log.d("TableFields - onUpgrade", "Upgrade from " + Integer.toString(oldVersion) + " to " + Integer.toString(newVersion));
-    	int version = oldVersion;
+    	int version = oldVersion + 1;
     	switch(version){
     		case 1: //Launch
     			//Do nothing this is the gplay launch version
     		case 2: //V2
     			//Nothing changed in this table
+    		case 3:
+    			//Major changes
+    			Log.d("TableJobs - onUpgrade", "upgarding to v3");
+    			database.beginTransaction();
+    			try {
+        			database.execSQL("create table backup(_id, remote_id, name, acres, boundary)");
+        			database.execSQL("insert into backup select _id, remote_id, name, acres, boundary from fields");
+        			database.execSQL("drop table fields");
+        			database.execSQL(DATABASE_CREATE);
+        			database.execSQL("insert into " + TABLE_NAME + " (_id, remote_id, name, acres, boundary) select _id, remote_id, name, acres, boundary from backup");
+        			database.execSQL("drop table backup");
+        			database.setTransactionSuccessful();
+    			} finally {
+    				database.endTransaction();
+    			}
+    			//Remove last point from all boundaries
+    			Cursor cursor = database.query(TableFields.TABLE_NAME, TableFields.COLUMNS, null, null, null, null, null);
+    			while(cursor.moveToNext()) {
+    				int id = cursor.getInt(cursor.getColumnIndex(TableFields.COL_ID));
+    				String strBoundary = cursor.getString(cursor.getColumnIndex(TableFields.COL_BOUNDARY));
+    				List<LatLng> boundary = TableFields.StringToBoundary(strBoundary);
+    				if(boundary.size() > 3){
+    					boundary.remove(boundary.size() - 1);
+    				}
+    				strBoundary = TableFields.BoundaryToString(boundary);
+    				//Update in db
+    				ContentValues values = new ContentValues();
+    				values.put(TableFields.COL_BOUNDARY, strBoundary);
+    				values.put(TableFields.COL_BOUNDARY_CHANGED, DatabaseHelper.dateToStringUTC(new Date(0)));
+    				values.put(TableFields.COL_NAME_CHANGED, DatabaseHelper.dateToStringUTC(new Date(0)));
+    				values.put(TableFields.COL_ACRES_CHANGED, DatabaseHelper.dateToStringUTC(new Date(0)));
+    				values.put(TableFields.COL_DELETED_CHANGED, DatabaseHelper.dateToStringUTC(new Date(0)));
+    				database.update(TableFields.TABLE_NAME, values, TableFields.COL_ID + " = " + Integer.toString(id), null);
+    			}
+    			cursor.close();
     	}
 	    //database.execSQL("DROP TABLE IF EXISTS " + TABLE_NAME);
 	    //onCreate(database);

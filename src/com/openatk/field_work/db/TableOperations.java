@@ -41,12 +41,36 @@ public class TableOperations {
 	//TODO
 	public static void onUpgrade(SQLiteDatabase database, int oldVersion, int newVersion) {
 		Log.d("TableOperations - onUpgrade", "Upgrade from " + Integer.toString(oldVersion) + " to " + Integer.toString(newVersion));
-    	int version = oldVersion;
+    	int version = oldVersion + 1;
     	switch(version){
     		case 1: //Launch
     			//Do nothing this is the gplay launch version
     		case 2: //V2
     			//Nothing changed in this table
+    		case 3:
+    			Log.d("TableOperations - onUpgrade", "upgarding to v3");
+    			database.beginTransaction();
+    			try {
+        			database.execSQL("create table backup(_id, remote_id, name)");
+        			database.execSQL("insert into backup select _id, remote_id, name from operations");
+        			database.execSQL("drop table operations");
+        			database.execSQL(DATABASE_CREATE);
+        			database.execSQL("insert into " + TABLE_NAME + " (_id, remote_id, name) select _id, remote_id, name from backup");
+        			database.execSQL("drop table backup");
+        			database.setTransactionSuccessful();
+    			} finally {
+    				database.endTransaction();
+    			}
+    			Cursor cursor = database.query(TableOperations.TABLE_NAME, TableOperations.COLUMNS, null, null, null, null, null);
+    			while(cursor.moveToNext()) {
+    				int id = cursor.getInt(cursor.getColumnIndex(TableOperations.COL_ID));
+    				//Update in db
+    				ContentValues values = new ContentValues();
+    				values.put(TableOperations.COL_DELETED_CHANGED, DatabaseHelper.dateToStringUTC(new Date(0)));
+    				values.put(TableOperations.COL_NAME_CHANGED, DatabaseHelper.dateToStringUTC(new Date(0)));
+    				database.update(TableOperations.TABLE_NAME, values, TableOperations.COL_ID + " = " + Integer.toString(id), null);
+    			}
+    			cursor.close();
     	}
 	    //database.execSQL("DROP TABLE IF EXISTS " + TABLE_NAME);
 	    //onCreate(database);

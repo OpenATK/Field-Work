@@ -42,6 +42,8 @@ public class FragmentAddField extends Fragment implements OnClickListener, OnChe
 	private FragmentAddFieldListener listener;
 	private float autoAcresValue;
 	
+	private View layout;
+	
 	private FieldView fieldview;
 	public boolean keyboardShowing = false;
 	
@@ -61,11 +63,14 @@ public class FragmentAddField extends Fragment implements OnClickListener, OnChe
 		ImageButton butDone = (ImageButton) view.findViewById(R.id.add_field_done);
 		ImageButton butUndo = (ImageButton) view.findViewById(R.id.add_field_undo);
 		ImageButton butDelete = (ImageButton) view.findViewById(R.id.add_field_delete);
-
+		layout = (View) view.findViewById(R.id.add_field_layout);
+		
 		name = (EditText) view.findViewById(R.id.add_field_name);
 		acres = (EditText) view.findViewById(R.id.add_field_etAcres);
 		autoAcres = (CheckBox) view.findViewById(R.id.add_field_chkAutoAcres);
 
+		layout.setOnClickListener(this);
+		
 		acres.setOnFocusChangeListener(new OnFocusChangeListener() {
 			@Override
 			public void onFocusChange(View v, boolean hasFocus) {
@@ -187,6 +192,8 @@ public class FragmentAddField extends Fragment implements OnClickListener, OnChe
 							listener.FragmentAddField_Done(fieldview);
 						}
 					}).setNegativeButton("No", null).show();
+		} else {
+			this.closeKeyboard();
 		}
 	}
 	
@@ -218,12 +225,7 @@ public class FragmentAddField extends Fragment implements OnClickListener, OnChe
 		//If keyboard is up, dont allow the boundary to change, put down keyboard
 		if(this.keyboardShowing){
 			if(this.keyboardShowing == true) {
-				InputMethodManager inputManager = (InputMethodManager) this.getActivity().getSystemService(Context.INPUT_METHOD_SERVICE);
-			    //check if no view has focus:
-			    View v=this.getActivity().getCurrentFocus();
-			    if(v != null){
-			    	inputManager.hideSoftInputFromWindow(v.getWindowToken(), InputMethodManager.HIDE_NOT_ALWAYS);
-			    }
+				closeKeyboard();
 			}
 			return false;
 		}
@@ -243,5 +245,14 @@ public class FragmentAddField extends Fragment implements OnClickListener, OnChe
 			}
 		}
 		return false;
+	}
+	
+	private void closeKeyboard(){
+		InputMethodManager inputManager = (InputMethodManager) this.getActivity().getSystemService(Context.INPUT_METHOD_SERVICE);
+	    //check if no view has focus:
+	    View v=this.getActivity().getCurrentFocus();
+	    if(v != null){
+	    	inputManager.hideSoftInputFromWindow(v.getWindowToken(), InputMethodManager.HIDE_NOT_ALWAYS);
+	    }
 	}
 }

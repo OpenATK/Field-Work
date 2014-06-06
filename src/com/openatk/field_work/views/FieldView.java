@@ -44,7 +44,7 @@ public class FieldView {
 	public FieldView(int state, Field field, Job job, ATKMap map) {
 		this(state, field, job, null, map);
 	}
-	
+
 	public FieldView(int state, Field field, Job job, ATKPolygonView polygonView, ATKMap map) {
 		super();
 		this.state = state;

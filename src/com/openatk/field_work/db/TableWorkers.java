@@ -45,12 +45,36 @@ public class TableWorkers {
 	//TODO handle update
 	public static void onUpgrade(SQLiteDatabase database, int oldVersion, int newVersion) {
 		Log.d("TableWorkers - onUpgrade", "Upgrade from " + Integer.toString(oldVersion) + " to " + Integer.toString(newVersion));
-    	int version = oldVersion;
+    	int version = oldVersion + 1;
     	switch(version){
     		case 1: //Launch
     			//Do nothing this is the gplay launch version
     		case 2: //V2
     			//Nothing changed in this table
+    		case 3:
+    			Log.d("TableWorkers - onUpgrade", "upgarding to v3");
+    			database.beginTransaction();
+    			try {
+        			database.execSQL("create table backup(_id, remote_id, name)");
+        			database.execSQL("insert into backup select _id, remote_id, name from workers");
+        			database.execSQL("drop table workers");
+        			database.execSQL(DATABASE_CREATE);
+        			database.execSQL("insert into " + TABLE_NAME + " (_id, remote_id, name) select _id, remote_id, name from backup");
+        			database.execSQL("drop table backup");
+        			database.setTransactionSuccessful();
+    			} finally {
+    				database.endTransaction();
+    			}
+    			Cursor cursor = database.query(TableWorkers.TABLE_NAME, TableWorkers.COLUMNS, null, null, null, null, null);
+    			while(cursor.moveToNext()) {
+    				int id = cursor.getInt(cursor.getColumnIndex(TableWorkers.COL_ID));
+    				//Update in db
+    				ContentValues values = new ContentValues();
+    				values.put(TableWorkers.COL_DELETED_CHANGED, DatabaseHelper.dateToStringUTC(new Date(0)));
+    				values.put(TableWorkers.COL_NAME_CHANGED, DatabaseHelper.dateToStringUTC(new Date(0)));
+    				database.update(TableWorkers.TABLE_NAME, values, TableWorkers.COL_ID + " = " + Integer.toString(id), null);
+    			}
+    			cursor.close();
     	}
 	    //database.execSQL("DROP TABLE IF EXISTS " + TABLE_NAME);
 	    //onCreate(database);

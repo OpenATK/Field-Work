@@ -23,13 +23,21 @@
         android:showAsAction="never"
         android:icon="@drawable/layers"
         android:title="Show Hazards"
-        android:visible="true"/>
+        android:visible="false"/>
     <item
         android:id="@+id/main_menu_list_view"
         android:orderInCategory="100"
         android:showAsAction="always"
         android:icon="@drawable/list_view"
-        android:title="Map View"/>
+        android:title="List View"
+        />
+    <item
+        android:id="@+id/main_menu_map_view"
+        android:orderInCategory="100"
+        android:showAsAction="always"
+        android:icon="@drawable/map_view"
+        android:title="Map View"
+        android:visible="false"/>
     <item
         android:id="@+id/main_menu_help"
         android:orderInCategory="100"

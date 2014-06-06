@@ -1,7 +1,9 @@
 package com.openatk.field_work.db;
 
 import java.util.Date;
+import java.util.List;
 
+import com.google.android.gms.maps.model.LatLng;
 import com.openatk.field_work.models.Field;
 import com.openatk.field_work.models.Job;
 import com.openatk.field_work.models.Worker;
@@ -74,13 +76,42 @@ public class TableJobs {
 	//TODO handle upgrade
 	public static void onUpgrade(SQLiteDatabase database, int oldVersion, int newVersion) {
 		Log.d("TableJobs - onUpgrade", "Upgrade from " + Integer.toString(oldVersion) + " to " + Integer.toString(newVersion));
-    	int version = oldVersion;
+    	int version = oldVersion + 1;
     	switch(version){
     		case 1: //Launch
     			//Do nothing this is the gplay launch version
     		case 2: //V2
     			//Added COL_DELETED
     			database.execSQL("ALTER TABLE " + TABLE_NAME + " ADD COLUMN " + COL_DELETED + " integer default 0");
+    		case 3:
+    			Log.d("TableJobs - onUpgrade", "upgarding to v3");
+    			database.beginTransaction();
+    			try {
+        			database.execSQL("create table backup(_id, remote_id, operation_id, date_of_operation, worker_name, field_name, status, comments, deleted)");
+        			database.execSQL("insert into backup select _id, remote_id, operation_id, date_of_operation, worker_name, field_name, status, comments, deleted from jobs");
+        			database.execSQL("drop table jobs");
+        			database.execSQL(DATABASE_CREATE);
+        			database.execSQL("insert into " + TABLE_NAME + " (_id, remote_id, operation_id, date_of_operation, worker_name, field_name, status, comments, deleted) select _id, remote_id, operation_id, date_of_operation, worker_name, field_name, status, comments, deleted from backup");
+        			database.execSQL("drop table backup");
+        			database.setTransactionSuccessful();
+    			} finally {
+    				database.endTransaction();
+    			}
+    			Cursor cursor = database.query(TableJobs.TABLE_NAME, TableJobs.COLUMNS, null, null, null, null, null);
+    			while(cursor.moveToNext()) {
+    				int id = cursor.getInt(cursor.getColumnIndex(TableJobs.COL_ID));
+    				//Update in db
+    				ContentValues values = new ContentValues();
+    				values.put(TableJobs.COL_COMMENTS_CHANGED, DatabaseHelper.dateToStringUTC(new Date(0)));
+    				values.put(TableJobs.COL_DATE_OF_OPERATION_CHANGED, DatabaseHelper.dateToStringUTC(new Date(0)));
+    				values.put(TableJobs.COL_DELETED_CHANGED, DatabaseHelper.dateToStringUTC(new Date(0)));
+    				values.put(TableJobs.COL_FIELD_NAME_CHANGED, DatabaseHelper.dateToStringUTC(new Date(0)));
+    				values.put(TableJobs.COL_STATUS_CHANGED, DatabaseHelper.dateToStringUTC(new Date(0)));
+    				values.put(TableJobs.COL_WORKER_NAME_CHANGED, DatabaseHelper.dateToStringUTC(new Date(0)));
+    				database.update(TableJobs.TABLE_NAME, values, TableJobs.COL_ID + " = " + Integer.toString(id), null);
+    			}
+    			cursor.close();
+    			
     	}
 	   //database.execSQL("DROP TABLE IF EXISTS " + TABLE_NAME);
 	   //onCreate(database);
@@ -175,6 +206,24 @@ public class TableJobs {
 		} else {
 			return null;
 		}
+	}
+	
+	public static boolean updateJobsWithFieldName(DatabaseHelper dbHelper, String oldName, String newName){
+		if(oldName == null || newName == null) return false;
+		
+		ContentValues values = new ContentValues();
+		values.put(TableJobs.COL_FIELD_NAME, newName);
+		values.put(TableJobs.COL_FIELD_NAME_CHANGED,  DatabaseHelper.dateToStringUTC(new Date()));
+
+		
+		SQLiteDatabase database = dbHelper.getWritableDatabase();
+		//UPDATE
+		String where = TableJobs.COL_FIELD_NAME + " = '" + oldName + "'";
+		database.update(TableJobs.TABLE_NAME, values, where, null);
+		database.close();
+		dbHelper.close();
+		
+		return true;
 	}
 	
 	public static boolean updateJob(DatabaseHelper dbHelper, Job job){

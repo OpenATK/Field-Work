@@ -218,7 +218,7 @@ public class MyTrelloContentProvider extends TrelloContentProvider {
 			Date theDate = new Date();			
 			String localId = "0";
 			String trelloId = "";
-			String name = "OpenATK - Field Work App - Test";
+			String name = "OpenATK - Field Work App";
 			String dateChange = TrelloContentProvider.dateToUnixString(theDate);
 			
 			SharedPreferences.Editor editor = prefs.edit();
@@ -415,11 +415,14 @@ public class MyTrelloContentProvider extends TrelloContentProvider {
 				} else {
 					//Update in the database accordingly
 					//Get operation if operation changed, this isn't handled in toJob TODO?...
+					Integer oldOperationId = -1;
 					if(tcard.getListId() != null){
 						Operation operation = TableOperations.FindOperationByTrelloId(dbHelper, tcard.getListId());
 						if(operation != null){
 							job.setOperationId(operation.getId());
 							job.setDateOperationIdChanged(tcard.getListId_changed());
+							//Save old operation id to pass to mainactivity to update field views
+							oldOperationId = TableJobs.FindJobById(dbHelper, job.getId()).getOperationId();
 						} else {
 							//If operation is null it's not on a operation list, should never happen
 							Log.w("MyTrellContentProvider - updateCard", "Job doesn't have a valid operation id");
@@ -430,6 +433,25 @@ public class MyTrelloContentProvider extends TrelloContentProvider {
 					Boolean updated = TableJobs.updateJob(dbHelper, job);
 					if(updated){
 						Intent toSend = new Intent(MainActivity.INTENT_JOB_UPDATED);
+
+						//If field name changed we need to update old field
+						if(job.getFieldName() != null) {
+							//Field name changed, we need to pass this so we can update the status of the old field
+							String oldFieldName = trelloHelper.toJob(tcard.getSource()).getFieldName();
+							if(oldFieldName != null) toSend.putExtra("oldFieldName", oldFieldName);
+						}
+						//If operation id changed we need to update the field status
+						if(job.getOperationId() != null) {
+							//Field name changed, we need to pass this so we can update the status of the old field
+							if(oldOperationId != null && oldOperationId != job.getOperationId()){
+								toSend.putExtra("oldOperationId", oldOperationId);
+							} else {
+								Log.d("MyTrelloContent", "Old operation id null");
+							}
+						} else {
+							Log.d("MyTrelloContent", "new operation id null");
+						}
+						
 						toSend.putExtra("id", job.getId());
 						LocalBroadcastManager.getInstance(this.getContext()).sendBroadcast(toSend);
 					}
@@ -696,6 +718,10 @@ public class MyTrelloContentProvider extends TrelloContentProvider {
 						//Insert in the database accordingly
 						Log.d("MyTrelloContentProvider - insertCard", "Inserted as worker");
 						TableWorkers.updateWorker(dbHelper, worker);
+						
+						Intent toSend = new Intent(MainActivity.INTENT_WORKER_UPDATED);
+						toSend.putExtra("id", worker.getId()); //This is set in updateWorker()
+						LocalBroadcastManager.getInstance(this.getContext()).sendBroadcast(toSend);
 					}
 				}
 			} else if(tcard.getListId().contentEquals(listFieldsTrelloId)){
@@ -710,6 +736,11 @@ public class MyTrelloContentProvider extends TrelloContentProvider {
 						//Insert field in database accordingly
 						Log.d("MyTrelloContentProvider - insertCard", "Inserted as field");
 						TableFields.updateField(dbHelper, field);
+						
+						Intent toSend = new Intent(MainActivity.INTENT_FIELD_UPDATED);
+						toSend.putExtra("id", field.getId()); //This is set in updateField()
+						toSend.putExtra("insert", true); //So we know to look for a job on this field.
+						LocalBroadcastManager.getInstance(this.getContext()).sendBroadcast(toSend);
 					}
 				}
 			} else {
@@ -729,6 +760,10 @@ public class MyTrelloContentProvider extends TrelloContentProvider {
 							job.setDateOperationIdChanged(tcard.getListId_changed());
 							Log.d("MyTrelloContentProvider - insertCard", "Inserted as job");
 							TableJobs.updateJob(dbHelper, job); //Insert job into db
+							
+							Intent toSend = new Intent(MainActivity.INTENT_JOB_UPDATED);
+							toSend.putExtra("id", job.getId()); //This is set in updateJob()
+							LocalBroadcastManager.getInstance(this.getContext()).sendBroadcast(toSend);
 						} else {
 							//If operation is null it's not on a operation list, should never happen
 							Log.w("MyTrellContentProvider - updateCard", "Job doesn't have a valid operation id");
@@ -805,7 +840,7 @@ public class MyTrelloContentProvider extends TrelloContentProvider {
 		String boardId = prefs.getString("boardTrelloId", "");
 		
 		//Check if this is our board if we don't have it already
-		if(tBoard.getClosed() == false && tBoard.getName().contentEquals("OpenATK - Field Work App - Test")){
+		if(tBoard.getClosed() == false && tBoard.getName().contentEquals("OpenATK - Field Work App")){
 			Log.d("MyTrelloContentProvider - insertBoard", "Found new board on trello named the same as ours.");
 			if(prefs.getString("boardTrelloId", "").length() == 0){
 				//TODO prompt to merge etc...
