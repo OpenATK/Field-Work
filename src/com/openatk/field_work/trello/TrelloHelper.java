@@ -206,7 +206,7 @@ public class TrelloHelper {
 			Pattern p2 = Pattern.compile("(?s)Boundary:[ ]?(.*);");
 			Matcher m2 = p2.matcher(tcard.getDesc());
 			if(m2.find()){
-				Log.d("MyTrelloContentProvider", "TrelloHelper - Found boundary");
+				Log.d("TrelloHelper", "TrelloHelper - Found boundary");
 				
 				Pattern p3 = Pattern.compile("[(]([-]?[0-9]+[.]?[0-9]*)[,]([-]?[0-9]+[.]?[0-9]*)[)]");
 				Matcher m3 = p3.matcher(m2.group(1));
@@ -224,6 +224,8 @@ public class TrelloHelper {
 			}
 			field.setBoundary(boundary);
 			field.setDateBoundaryChanged(tcard.getDesc_changed());
+		} else {
+			Log.w("TrelloHelper", "Field does not have a desc, no boundary.");
 		}
 		
 		if(tcard.getClosed() != null){

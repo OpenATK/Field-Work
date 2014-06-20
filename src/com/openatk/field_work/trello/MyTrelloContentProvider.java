@@ -595,7 +595,18 @@ public class MyTrelloContentProvider extends TrelloContentProvider {
 		TableFields.deleteAll(dbHelper);
 		TableJobs.deleteAll(dbHelper);
 		
-		//LocalBroadcastManager.getInstance(this.getContext()).sendBroadcast(new Intent(MainActivity.INTENT_ROCKS_UPDATED));
+		
+		if(prefs.getInt(MainActivity.PREF_GONE, MainActivity.PREF_GONE_NO_UPDATE) == MainActivity.PREF_GONE_NO_UPDATE){
+			//MainActivity is away, tell it that there has been an update
+			editor = prefs.edit();
+			editor.putInt(MainActivity.PREF_GONE, MainActivity.PREF_GONE_UPDATE);
+			editor.commit();
+			Log.d("MyTreloContentProvider", "MainActivity is gone, set update.");
+		} else {
+			Log.d("MyTreloContentProvider", "MainActivity is present.");
+		}
+		//Tell MainActivity if it is around that this is an update
+		LocalBroadcastManager.getInstance(this.getContext()).sendBroadcast(new Intent(MainActivity.INTENT_EVERYTHING_DELETED));
 		return 0;
 	}
 	
@@ -692,7 +703,8 @@ public class MyTrelloContentProvider extends TrelloContentProvider {
 
 		Log.d("MyTrelloContentProvider","insertCard()");
 		Log.d("MyTrelloContentProvider","insert Card name: " + tcard.getName());
-		
+		Log.d("MyTrelloContentProvider","insert Card desc: " + tcard.getDesc());
+
 		SharedPreferences prefs = this.getContext().getSharedPreferences("com.openatk.field_work", Context.MODE_PRIVATE | Context.MODE_MULTI_PROCESS);
 		String listWorkersTrelloId = prefs.getString("listWorkersTrelloId", "");
 		String listFieldsTrelloId = prefs.getString("listFieldsTrelloId", "");

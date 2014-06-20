@@ -36,6 +36,7 @@
 		        android:layout_weight="60"
 		        android:textSize="22sp"
 		        android:inputType="textVisiblePassword"
+		        android:digits="0123456789QWERTYUIOPASDFGHJKLZXCVBNMzxcvbnmasdfgjhjklqwertyuiop!@#$%^*()_[]}{'/?.,"
 		        />
 		<Space 
             android:layout_width="0dp" 
