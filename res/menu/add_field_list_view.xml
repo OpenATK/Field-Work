@@ -8,12 +8,12 @@
     <item
         android:id="@+id/main_menu_current_location"
         android:orderInCategory="100"
-        android:showAsAction="always"
+        android:showAsAction="ifRoom"
         android:icon="@drawable/locate"
         android:title="Current Location"/>
     <item 
         android:id="@+id/main_menu_sync"
-        android:showAsAction="always" 
+        android:showAsAction="ifRoom" 
 	    android:icon="@drawable/refresh"
         android:title="Sync"
         android:visible="true" />
@@ -27,13 +27,13 @@
     <item
         android:id="@+id/main_menu_list_view"
         android:orderInCategory="100"
-        android:showAsAction="always"
+        android:showAsAction="ifRoom"
         android:icon="@drawable/list_view"
         android:title="List View"/>
     <item
         android:id="@+id/main_menu_map_view"
         android:orderInCategory="100"
-        android:showAsAction="always"
+        android:showAsAction="ifRoom"
         android:icon="@drawable/map_view"
         android:title="Map View"/>
     <item

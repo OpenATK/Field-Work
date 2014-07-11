@@ -39,6 +39,11 @@
         android:icon="@drawable/map_view"
         android:title="Map View"/>
     <item
+        android:id="@+id/main_menu_autosync"
+        android:orderInCategory="100"
+        android:showAsAction="never"
+        android:title="Auto Sync"/>
+    <item
         android:id="@+id/main_menu_help"
         android:orderInCategory="100"
         android:showAsAction="never"

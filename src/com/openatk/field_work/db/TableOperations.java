@@ -7,6 +7,7 @@ import com.openatk.field_work.models.Operation;
 
 import android.content.ContentValues;
 import android.database.Cursor;
+import android.database.DatabaseUtils;
 import android.database.sqlite.SQLiteDatabase;
 import android.util.Log;
 
@@ -124,8 +125,8 @@ public class TableOperations {
 			SQLiteDatabase database = dbHelper.getReadableDatabase();
 			// Find current field
 			Operation item = null;
-			String where = TableOperations.COL_REMOTE_ID + " = '" + id + "'";
-			Cursor cursor = database.query(TableOperations.TABLE_NAME, TableOperations.COLUMNS, where, null, null, null, null);
+			String where = TableOperations.COL_REMOTE_ID + " = ?";
+			Cursor cursor = database.query(TableOperations.TABLE_NAME, TableOperations.COLUMNS, where, new String[]{id}, null, null, null);
 			if (cursor.moveToFirst()) {
 				item = TableOperations.cursorToOperation(cursor);
 			}
@@ -191,12 +192,14 @@ public class TableOperations {
 			//DELETE
 			//If have id, lookup by that, it's fastest
 			String where;
+			String[] args = null;
 			if(operation.getId() != null){
 				where = TableOperations.COL_ID + " = " + Integer.toString(operation.getId());
 			} else {
-				where = TableOperations.COL_REMOTE_ID + " = '" + operation.getRemote_id() + "'";
+				args = new String[]{operation.getRemote_id()};
+				where = TableOperations.COL_REMOTE_ID + " = ?";
 			}
-			database.delete(TableOperations.TABLE_NAME, where, null);
+			database.delete(TableOperations.TABLE_NAME, where, args);
 			ret = true;
 		}
 		database.close();

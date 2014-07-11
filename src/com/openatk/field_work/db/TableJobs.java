@@ -10,6 +10,7 @@ import com.openatk.field_work.models.Worker;
 
 import android.content.ContentValues;
 import android.database.Cursor;
+import android.database.DatabaseUtils;
 import android.database.sqlite.SQLiteDatabase;
 import android.util.Log;
 
@@ -162,8 +163,8 @@ public class TableJobs {
 		SQLiteDatabase database = dbHelper.getReadableDatabase();
 		// Find job
 		Job theJob = null;
-		String where = TableJobs.COL_FIELD_NAME + " = '" + name + "'" + " AND " + TableJobs.COL_OPERATION_ID + " = " + Integer.toString(idOperation) + " AND " + TableJobs.COL_DELETED + " = 0";
-		Cursor cursor = database.query(TableJobs.TABLE_NAME, TableJobs.COLUMNS, where, null, null, null, null);
+		String where = TableJobs.COL_FIELD_NAME + "= ? AND " + TableJobs.COL_OPERATION_ID + " = " + Integer.toString(idOperation) + " AND " + TableJobs.COL_DELETED + " = 0";
+		Cursor cursor = database.query(TableJobs.TABLE_NAME, TableJobs.COLUMNS, where, new String[]{name}, null, null, null);
 		if (cursor.moveToFirst()) {
 			theJob = TableJobs.cursorToJob(cursor);
 		}
@@ -218,8 +219,8 @@ public class TableJobs {
 		
 		SQLiteDatabase database = dbHelper.getWritableDatabase();
 		//UPDATE
-		String where = TableJobs.COL_FIELD_NAME + " = '" + oldName + "'";
-		database.update(TableJobs.TABLE_NAME, values, where, null);
+		String where = TableJobs.COL_FIELD_NAME + " = ?";
+		database.update(TableJobs.TABLE_NAME, values, where, new String[] { oldName });
 		database.close();
 		dbHelper.close();
 		
@@ -296,12 +297,14 @@ public class TableJobs {
 			//DELETE
 			//If have id, lookup by that, it's fastest
 			String where;
+			String[] args = null;
 			if(job.getId() != null){
 				where = TableJobs.COL_ID + " = " + Integer.toString(job.getId());
 			} else {
-				where = TableJobs.COL_REMOTE_ID + " = '" + job.getRemote_id() + "'";
+				where = TableJobs.COL_REMOTE_ID + " = ?";
+				args = new String[] { job.getRemote_id() };
 			}
-			database.delete(TableJobs.TABLE_NAME, where, null);
+			database.delete(TableJobs.TABLE_NAME, where, args);
 			ret = true;
 		}
 		database.close();

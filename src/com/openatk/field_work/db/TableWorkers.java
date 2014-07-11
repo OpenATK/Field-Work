@@ -8,6 +8,7 @@ import com.openatk.field_work.models.Worker;
 
 import android.content.ContentValues;
 import android.database.Cursor;
+import android.database.DatabaseUtils;
 import android.database.sqlite.SQLiteDatabase;
 import android.util.Log;
 
@@ -125,8 +126,8 @@ public class TableWorkers {
 		if (remoteId != null) {
 			SQLiteDatabase database = dbHelper.getReadableDatabase();
 			Worker item = null;
-			String where = TableWorkers.COL_REMOTE_ID + " = '" + remoteId + "'";
-			Cursor cursor = database.query(TableWorkers.TABLE_NAME, TableWorkers.COLUMNS, where, null, null, null, null);
+			String where = TableWorkers.COL_REMOTE_ID + " = ?";
+			Cursor cursor = database.query(TableWorkers.TABLE_NAME, TableWorkers.COLUMNS, where, new String[]{remoteId}, null, null, null);
 			if (cursor.moveToFirst()) {
 				item = TableWorkers.cursorToWorker(cursor);
 			}
@@ -188,12 +189,14 @@ public class TableWorkers {
 			//DELETE
 			//If have id, lookup by that, it's fastest
 			String where;
+			String[] args = null;
 			if(worker.getId() != null){
 				where = TableWorkers.COL_ID + " = " + Integer.toString(worker.getId());
 			} else {
-				where = TableWorkers.COL_REMOTE_ID + " = '" + worker.getRemote_id() + "'";
+				args = new String[]{worker.getRemote_id()};
+				where = TableWorkers.COL_REMOTE_ID + " = ?";
 			}
-			database.delete(TableWorkers.TABLE_NAME, where, null);
+			database.delete(TableWorkers.TABLE_NAME, where, args);
 			ret = true;
 		}
 		database.close();

@@ -67,6 +67,7 @@ import com.openatk.field_work.views.RelativeLayoutKeyboardDetect;
 import com.openatk.field_work.views.RelativeLayoutKeyboardDetect.KeyboardChangeListener;
 import com.openatk.libtrello.TrelloContentProvider;
 import com.openatk.libtrello.TrelloSyncHelper;
+import com.openatk.libtrello.TrelloSyncInfo;
 import com.openatk.openatklib.atkmap.ATKMap;
 import com.openatk.openatklib.atkmap.ATKSupportMapFragment;
 import com.openatk.openatklib.atkmap.listeners.ATKMapClickListener;
@@ -139,7 +140,7 @@ public class MainActivity extends FragmentActivity implements OnClickListener, F
 	private Operation currentOperation;
 	
 	private TrelloSyncHelper syncHelper;
-	
+		
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
@@ -181,7 +182,6 @@ public class MainActivity extends FragmentActivity implements OnClickListener, F
 		// Hide the title
 		actionBar.setDisplayShowTitleEnabled(false);
 		actionBar.setDisplayUseLogoEnabled(false);
-
 		actionBar.setDisplayOptions(ActionBar.DISPLAY_SHOW_CUSTOM,ActionBar.DISPLAY_SHOW_CUSTOM);
 		
 		LayoutInflater inflater = (LayoutInflater) this.getApplicationContext().getSystemService(Context.LAYOUT_INFLATER_SERVICE);
@@ -232,11 +232,16 @@ public class MainActivity extends FragmentActivity implements OnClickListener, F
 		layout.setListener(this);
  		
 		setUpMapIfNeeded();
+		if(this.savedInstanceState != null){
+			int viewState = savedInstanceState.getInt("currentViewState", STATE_DEFAULT);
+			setState(viewState);
+		}
 	}
 
 	@Override
 	protected void onSaveInstanceState(Bundle outState) {
-		if(currentFieldView != null) outState.putInt("currentField", currentFieldView.getFieldId());		
+		if(currentFieldView != null) outState.putInt("currentField", currentFieldView.getFieldId());	
+		outState.putInt("currentViewState", mCurrentState);	
 		super.onSaveInstanceState(outState);
 	}
 
@@ -521,6 +526,8 @@ public class MainActivity extends FragmentActivity implements OnClickListener, F
 		editor.putInt(MainActivity.PREF_GONE, MainActivity.PREF_GONE_NO_UPDATE);
 		editor.commit();
 		LocalBroadcastManager.getInstance(this).unregisterReceiver(broadcastReciever);
+		
+		syncHelper.onPause();
 	}
 
 	@Override
@@ -577,7 +584,7 @@ public class MainActivity extends FragmentActivity implements OnClickListener, F
 		editor.commit();
 		if(syncOccured) {
 			//Sync again in case this is a new organization
-			TrelloContentProvider.Sync(this.getApplicationContext().getPackageName());	
+			this.syncHelper.sync(this);
 		}
 		//drawHazards();
 	}
@@ -937,6 +944,8 @@ public class MainActivity extends FragmentActivity implements OnClickListener, F
 
 	@Override
 	public boolean onPrepareOptionsMenu(Menu menu) {
+		boolean installed = TrelloContentProvider.isInstalled();
+		
 		if(this.fragmentAddField != null) {
 			if(mCurrentState == STATE_LIST_VIEW){
 				Log.d("MainActivity", "pInflating add field list view");
@@ -945,7 +954,6 @@ public class MainActivity extends FragmentActivity implements OnClickListener, F
 				
 				menu.findItem(R.id.main_menu_add).setVisible(false);
 				menu.findItem(R.id.main_menu_sync).setVisible(false);
-				
 				menu.findItem(R.id.main_menu_current_location).setVisible(false);
 			} else {
 				Log.d("MainActivity", "pInflating add field map view");
@@ -963,7 +971,13 @@ public class MainActivity extends FragmentActivity implements OnClickListener, F
 			menu.findItem(R.id.main_menu_map_view).setVisible(true);
 			
 			menu.findItem(R.id.main_menu_add).setVisible(true);
-			menu.findItem(R.id.main_menu_sync).setVisible(true);
+			if(installed) {
+				menu.findItem(R.id.main_menu_sync).setVisible(true);
+				menu.findItem(R.id.main_menu_autosync).setVisible(true);
+			} else {
+				menu.findItem(R.id.main_menu_sync).setVisible(false);
+				menu.findItem(R.id.main_menu_autosync).setVisible(false);
+			}
 			
 			menu.findItem(R.id.main_menu_current_location).setVisible(false);
 		} else {
@@ -972,10 +986,17 @@ public class MainActivity extends FragmentActivity implements OnClickListener, F
 			menu.findItem(R.id.main_menu_map_view).setVisible(false);
 			
 			menu.findItem(R.id.main_menu_add).setVisible(true);
-			menu.findItem(R.id.main_menu_sync).setVisible(true);
+			if(installed) {
+				menu.findItem(R.id.main_menu_sync).setVisible(true);
+				menu.findItem(R.id.main_menu_autosync).setVisible(true);
+			} else {
+				menu.findItem(R.id.main_menu_sync).setVisible(false);
+				menu.findItem(R.id.main_menu_autosync).setVisible(false);
+			}
 			
 			menu.findItem(R.id.main_menu_current_location).setVisible(true);
-		}		
+		}	
+		
 		return super.onPrepareOptionsMenu(menu);
 	}
 
@@ -1019,7 +1040,7 @@ public class MainActivity extends FragmentActivity implements OnClickListener, F
 			editor.commit();
 			drawHazards();*/
 		} else if (item.getItemId() == R.id.main_menu_sync) {
-			TrelloContentProvider.Sync(this.getApplicationContext().getPackageName());		
+			this.syncHelper.sync(this);
 		} else if (item.getItemId() == R.id.main_menu_list_view) {
 			// Show list view
 			Log.d("MainActivity", "Showing list view");
@@ -1074,6 +1095,56 @@ public class MainActivity extends FragmentActivity implements OnClickListener, F
 				.setMessage(licence)
 				.setIcon(android.R.drawable.ic_dialog_alert)
 				.setPositiveButton("Close", null).show();
+		} else if(item.getItemId() == R.id.main_menu_autosync){
+			TrelloSyncInfo syncInfo = syncHelper.getSyncInfo(getApplicationContext());
+			
+			int selected = -1;
+			if(syncInfo != null){
+				if(syncInfo.getAutoSync() != null && syncInfo.getAutoSync() == false){
+					selected = 0;
+				} else if(syncInfo.getInterval() != null) {
+					Log.d("MainActivity", "syncInfo interval:" + syncInfo.getInterval());
+					if(syncInfo.getInterval() == 60) selected = 1;
+					if(syncInfo.getInterval() == 60*5) selected = 2;
+					if(syncInfo.getInterval() == 60*10) selected = 3;
+					if(syncInfo.getInterval() == 60*30) selected = 4;
+				}
+			}
+			String[] options = { 
+					"Never", "1 min", "5 min", "10 min", "30 min"
+				};
+			new AlertDialog.Builder(this).setTitle("Autosync Interval").setSingleChoiceItems(options, selected, 
+					new DialogInterface.OnClickListener() {
+						Integer devAutoSyncOnTrigger = 0;
+						public void onClick(DialogInterface dialog, int which) {
+							if(which == 0){
+								syncHelper.autoSyncOff(getApplicationContext());
+							} else if(which == 1) {
+								syncHelper.autoSyncOn(getApplicationContext(), 60);
+							} else if(which == 2) {
+								syncHelper.autoSyncOn(getApplicationContext(), 60*5);
+							} else if(which == 3) {
+								syncHelper.autoSyncOn(getApplicationContext(), 60*10);
+							} else if(which == 4) {
+								syncHelper.autoSyncOn(getApplicationContext(), 60*30);
+								devAutoSyncOnTrigger++;
+								if(devAutoSyncOnTrigger > 9){
+									if(devAutoSyncOnTrigger % 2 == 0){
+										syncHelper.devAutoSyncOn(getApplicationContext(), 3);
+										Toast.makeText(getApplicationContext(), "Presentation auto sync on, every 3 seconds.", Toast.LENGTH_SHORT).show();
+									} else {
+										syncHelper.devAutoSyncOff(getApplicationContext());
+										Toast.makeText(getApplicationContext(), "Presentation auto sync off.", Toast.LENGTH_SHORT).show();
+									}
+								}
+							}
+			           }
+					}).setPositiveButton("Ok", new DialogInterface.OnClickListener() {
+			             @Override
+			             public void onClick(DialogInterface dialog, int id) {
+			                 
+			             }
+			         }).show();
 		}
 		return true;
 	}
@@ -1347,7 +1418,7 @@ public class MainActivity extends FragmentActivity implements OnClickListener, F
 				
 				//Add or update in list view
 				if (this.fragmentListView != null) this.fragmentListView.getData();
-				this.syncHelper.syncDelayed(this);
+				this.syncHelper.autoSyncDelayed(this);
 			}
 			
 			this.currentFieldView = fieldview;
@@ -1533,13 +1604,13 @@ public class MainActivity extends FragmentActivity implements OnClickListener, F
 		}
 		
 		//Remote sync jobs, they have changed...
-		this.syncHelper.syncDelayed(this);
+		this.syncHelper.autoSyncDelayed(this);
 	}
 
 	@Override
 	public void FragmentJob_TriggerSync() {
 		//Trigger a sync
-		this.syncHelper.syncDelayed(this);
+		this.syncHelper.autoSyncDelayed(this);
 	}
 
 

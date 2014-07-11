@@ -12,6 +12,7 @@ import com.openatk.field_work.models.Worker;
 
 import android.content.ContentValues;
 import android.database.Cursor;
+import android.database.DatabaseUtils;
 import android.database.sqlite.SQLiteDatabase;
 import android.util.Log;
 import android.widget.Toast;
@@ -176,9 +177,8 @@ public class TableFields {
 			SQLiteDatabase database = dbHelper.getReadableDatabase();
 			// Find current field
 			Field theField = null;
-			String where = TableFields.COL_NAME + " = '" + name + "' AND " + TableFields.COL_DELETED + " = 0";
-			Cursor cursor = database.query(TableFields.TABLE_NAME,
-					TableFields.COLUMNS, where, null, null, null, null);
+			String where = TableFields.COL_NAME + " = ? AND " + TableFields.COL_DELETED + " = 0";
+			Cursor cursor = database.query(TableFields.TABLE_NAME, TableFields.COLUMNS, where, new String[] {name}, null, null, null);
 			if (cursor.moveToFirst()) {
 				theField = TableFields.cursorToField(cursor);
 			}
@@ -219,8 +219,8 @@ public class TableFields {
 			SQLiteDatabase database = dbHelper.getReadableDatabase();
 			// Find current field
 			Field theField = null;
-			String where = TableFields.COL_REMOTE_ID + " = '" + remoteId + "'";
-			Cursor cursor = database.query(TableFields.TABLE_NAME,TableFields.COLUMNS, where, null, null, null, null);
+			String where = TableFields.COL_REMOTE_ID + " = ?";
+			Cursor cursor = database.query(TableFields.TABLE_NAME,TableFields.COLUMNS, where,  new String[] {remoteId}, null, null, null);
 			if (cursor.moveToFirst()) {
 				theField = TableFields.cursorToField(cursor);
 			}
@@ -309,12 +309,14 @@ public class TableFields {
 			//UPDATE
 			//If have id, lookup by that, it's fastest
 			String where;
+			String[] args = null;
 			if(field.getId() != null){
 				where = TableFields.COL_ID + " = " + Integer.toString(field.getId());
 			} else {
-				where = TableFields.COL_REMOTE_ID + " = '" + field.getRemote_id() + "'";
+				where = TableFields.COL_REMOTE_ID + " = ?";
+				args = new String[] { field.getRemote_id() };
 			}
-			database.delete(TableFields.TABLE_NAME, where, null);
+			database.delete(TableFields.TABLE_NAME, where, args);
 			ret = true;
 		}
 		database.close();
