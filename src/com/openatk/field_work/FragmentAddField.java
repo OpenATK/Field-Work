@@ -173,7 +173,7 @@ public class FragmentAddField extends Fragment implements OnClickListener, OnChe
 			}
 			
 			this.fieldview.getField().setAcres(fltAcres);
-			this.fieldview.getField().setName(name.getText().toString());
+			this.fieldview.getField().setName(name.getText().toString().trim());
 			fieldview.getPolygonView().setOnDrawListener(null);
 			listener.FragmentAddField_Done(this.fieldview);
 		} else if (v.getId() == R.id.add_field_undo) {

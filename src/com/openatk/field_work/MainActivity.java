@@ -168,6 +168,9 @@ public class MainActivity extends FragmentActivity implements OnClickListener, F
 			fragmentListView.setRetainInstance(true);
 			if(fragmentJob != null) fragmentJob.setRetainInstance(true);
 			if(fragmentAddField != null) fragmentAddField.setRetainInstance(true);
+			
+			fragmentJob = null;
+			fragmentAddField = null;
 		} else {
 			// Reincarnated activity. The obtained map is the same map instance
 			// in the previous
@@ -946,7 +949,7 @@ public class MainActivity extends FragmentActivity implements OnClickListener, F
 	public boolean onPrepareOptionsMenu(Menu menu) {
 		boolean installed = TrelloContentProvider.isInstalled();
 		
-		if(this.fragmentAddField != null) {
+		if(this.fragmentAddField != null && this.fragmentAddField.isHidden() == false) {
 			if(mCurrentState == STATE_LIST_VIEW){
 				Log.d("MainActivity", "pInflating add field list view");
 				menu.findItem(R.id.main_menu_list_view).setVisible(false);
@@ -1267,11 +1270,11 @@ public class MainActivity extends FragmentActivity implements OnClickListener, F
 
 			FragmentManager fm = getSupportFragmentManager();
 			FragmentAddField fragment = new FragmentAddField();
+			fragmentAddField = fragment;
 			FragmentTransaction ft = fm.beginTransaction();
 			if (transition) ft.setCustomAnimations(R.anim.slide_up, R.anim.slide_down);
 			ft.add(R.id.fragment_container_add_field, fragment, "add_field");
 			ft.commit();
-			fragmentAddField = fragment;
 			fragment.setRetainInstance(true);
 		}
 		this.invalidateOptionsMenu();
@@ -1282,6 +1285,7 @@ public class MainActivity extends FragmentActivity implements OnClickListener, F
 		if (this.fragmentAddField != null && this.fragmentAddField.isVisible() == true) {
 			FragmentManager fm = getSupportFragmentManager();
 			FragmentAddField fragment = (FragmentAddField) fm.findFragmentByTag("add_field");
+			fragmentAddField = null;
 			// Set height so transition works
 			FrameLayout layout = (FrameLayout) findViewById(R.id.fragment_container_add_field);
 			RelativeLayout.LayoutParams params = (RelativeLayout.LayoutParams) layout
@@ -1293,7 +1297,6 @@ public class MainActivity extends FragmentActivity implements OnClickListener, F
 			if (transition) ft.setCustomAnimations(R.anim.slide_up, R.anim.slide_down);
 			ft.hide(fragment);
 			ft.commit();
-			fragmentAddField = null;
 		}
 		this.invalidateOptionsMenu();
 	}
@@ -1325,7 +1328,7 @@ public class MainActivity extends FragmentActivity implements OnClickListener, F
 		}
 		
 		// Check if field name is valid and doesn't exist already
-		if (field.getName().length() == 0) {
+		if (field.getName().trim().length() == 0) {
 			// Tell them to input a name
 			// TODO add this message to R.strings
 			Toast.makeText(this, "Field name cannot be blank.", Toast.LENGTH_LONG).show();
@@ -1497,6 +1500,7 @@ public class MainActivity extends FragmentActivity implements OnClickListener, F
 	
 	@Override
 	public void onMapClick(LatLng position) {
+		Log.d("MainActivity", "OnMapClick");
 		if(this.keyboardIsShowing == true) {
 			closeKeyboard();
 		}
@@ -1513,7 +1517,8 @@ public class MainActivity extends FragmentActivity implements OnClickListener, F
 
 	@Override
 	public boolean onPolygonClick(final ATKPolygonView polygonView) {
-		
+		Log.d("MainActivity", "OnPolygonClick");
+
 		if(this.keyboardIsShowing == true) {
 			closeKeyboard();
 		}
@@ -1523,9 +1528,10 @@ public class MainActivity extends FragmentActivity implements OnClickListener, F
 			FieldView clicked = (FieldView) polygonView.getData();
 			clicked.setState(FieldView.STATE_SELECTED);
 			
-			
-			if(currentFieldView != null) currentFieldView.setState(FieldView.STATE_NORMAL);
-			currentFieldView = clicked;
+			if(currentFieldView != clicked){
+				if(currentFieldView != null) currentFieldView.setState(FieldView.STATE_NORMAL);
+				currentFieldView = clicked;
+			}
 		
 			updateFragmentJob();
 			
@@ -1663,7 +1669,6 @@ public class MainActivity extends FragmentActivity implements OnClickListener, F
 		//On touch map dismiss keyboard
 		keyboardIsShowing = isShowing;
 		if(this.fragmentAddField != null) this.fragmentAddField.keyboardShowing = isShowing;
-		Log.d("MainActivity", "Keyboard Showing:" + Boolean.toString(isShowing));
 	}
 
 	

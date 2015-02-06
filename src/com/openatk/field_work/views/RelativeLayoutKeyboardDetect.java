@@ -40,7 +40,6 @@ public class RelativeLayoutKeyboardDetect extends RelativeLayout {
         int screenHeight = size.y;
         
         int diff = (screenHeight - statusBarHeight) - height;
-        Log.d("RelativeLayoutDetectKeyboard", "diff:" + Integer.toString(diff));
         if (listener != null) {
             listener.onSoftKeyboardShown(diff>128); // assume all soft keyboards are at least 128 pixels high
         }
