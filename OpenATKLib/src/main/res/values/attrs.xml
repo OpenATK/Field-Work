@@ -1,0 +1,9 @@
+<resources>
+    <declare-styleable name="ATKSliderLayout">
+        <attr name="horizontalSpacing" format="dimension" />
+        <attr name="verticalSpacing" format="dimension" />
+    </declare-styleable>
+    <declare-styleable name="ATKSliderLayout_LayoutParams">
+        <attr name="shown" format="boolean" />
+    </declare-styleable>
+</resources>

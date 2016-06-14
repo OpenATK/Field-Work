@@ -1,0 +1,35 @@
+<com.openatk.field_work.views.RelativeLayoutKeyboardDetect xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/mainActivity"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    tools:context=".MainActivity" >
+
+	<fragment
+	        android:id="@+id/map"
+	        android:name="com.openatk.openatklib.atkmap.ATKSupportMapFragment"
+	        android:layout_width="match_parent"
+	        android:layout_height="match_parent" />
+	
+	<fragment
+	    android:id="@+id/list_view"
+	    android:name="com.openatk.field_work.FragmentListView"
+	    android:layout_width="match_parent"
+	    android:layout_height="match_parent" />
+	
+	<FrameLayout
+	    android:id="@+id/fragment_container_edit_job"
+	    android:layout_width="match_parent"
+	    android:layout_height="wrap_content"
+	    android:layout_alignParentBottom="true"
+	     />
+	
+	<FrameLayout
+	    android:id="@+id/fragment_container_add_field"
+	    android:layout_width="match_parent"
+	    android:layout_height="wrap_content"
+	    android:layout_alignParentBottom="true"
+	     />
+	
+</com.openatk.field_work.views.RelativeLayoutKeyboardDetect>

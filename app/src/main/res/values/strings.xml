@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <string name="app_name">Field Work</string>
+    <string name="action_settings">Settings</string>
+	<string-array name="labelMenu">
+        <item >Disc 2012</item>
+        <item >Chisel 2012</item>
+    </string-array>
+    
+	<string name="trello_perm_desc">Let apps access your trello synced data</string>
+    <string name="trello_perm_label">Trello Access</string>
+</resources>
